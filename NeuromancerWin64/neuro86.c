@@ -179,8 +179,7 @@ static inline void push_u16(cpu_t *cpu, uint16_t val)
 	register uint16_t sp = (uint16_t)(get_reg_u16(cpu, REG_SP) - 2);
 	set_reg_u16(cpu, REG_SP, sp);
 
-	uint16_t *dst = (uint16_t*)translate_x16_to_x64(DSEG, sp);
-	*dst = val;
+	set_mem_u16(cpu, sp, val);
 }
 
 static inline uint16_t pop_u16(cpu_t *cpu)
@@ -188,8 +187,7 @@ static inline uint16_t pop_u16(cpu_t *cpu)
 	register uint16_t sp = get_reg_u16(cpu, REG_SP);
 	set_reg_u16(cpu, REG_SP, (uint16_t)(sp + 2));
 
-	uint16_t *val = (uint16_t*)translate_x16_to_x64(DSEG, sp);
-	return *val;
+	return get_mem_u16(cpu, sp);
 }
 
 // fetch
@@ -223,8 +221,10 @@ static uint16_t decode_rm_addr(cpu_t *cpu, modrm_t *modrm)
 {
 	register uint16_t addr;
 
-	assert(modrm->mod != 3);
-
+        if (modrm->mod == 3) {
+            fprintf(stderr, "decode_rm_addr: mod==3 is register mode, not memory\n");
+            return 0;
+        }
 	if(modrm->rm >> 1 == 3) {
 		if(modrm->rm & 1)
 			addr = get_reg_u16(cpu, REG_BX);
@@ -283,13 +283,12 @@ void cpu_run(cpu_t *cpu)
 {
 	uint8_t opcode;
 
-	assert(cpu->state != CPU_HALTED);
-
+        if (cpu->state == CPU_HALTED) return;
 	while (cpu->state == CPU_RUNNING) {
 		opcode = fetch_u8(cpu);
 		if (tbl_opcodes[opcode] == NULL) {
-			fprintf(stderr, "unknown opcode: %02x\n", opcode);
-			assert(tbl_opcodes[opcode] != NULL);
+                fprintf(stderr, "unknown 8086 opcode: %02x\n", opcode);
+                        cpu_set_state(cpu, CPU_STOPPED);
 		}
 
 		(tbl_opcodes[opcode])(cpu, opcode);

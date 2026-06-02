@@ -28,7 +28,7 @@ static uint8_t g_current_reply = 0;
 
 static void dialog_first_reply()
 {
-	char *reply = g_a8e0.bih.bytes + g_a8e0.bih.hdr.text_offset;
+	char *reply = g_a8e0.bih.bytes + le16(g_a8e0.bih.hdr.text_offset);
 	uint8_t first_reply = g_a642->first_dialog_reply;
 
 	for (int i = 0; i < first_reply; i++)
@@ -42,7 +42,7 @@ static void dialog_first_reply()
 
 static void dialog_next_reply()
 {
-	char *reply = g_a8e0.bih.bytes + g_a8e0.bih.hdr.text_offset;
+	char *reply = g_a8e0.bih.bytes + le16(g_a8e0.bih.hdr.text_offset);
 	uint8_t first_reply = g_a642->first_dialog_reply;
 	uint8_t total_replies = g_a642->total_dialog_replies;
 
@@ -61,7 +61,7 @@ static void dialog_next_reply()
 
 static dialog_state_t dialog_accept_reply()
 {
-	char *reply = g_a8e0.bih.bytes + g_a8e0.bih.hdr.text_offset;
+	char *reply = g_a8e0.bih.bytes + le16(g_a8e0.bih.hdr.text_offset);
 	uint8_t first_reply = g_a642->first_dialog_reply;
 
 	for (int i = 0; i < first_reply + g_current_reply; i++)
@@ -115,7 +115,7 @@ void rw_dialog_handle_text_enter(int *state, sfTextEvent *event)
 
 static dialog_state_t on_dialog_accept_reply_kboard(sfKeyEvent *event)
 {
-	if (event->type == sfEvtKeyReleased &&
+	if (1 &&
 		event->code == sfKeyReturn)
 	{
 		return on_dialog_accept_reply_text_input(NULL, 1);
@@ -139,22 +139,22 @@ static dialog_state_t handle_dialog_wait_for_input(dialog_state_t state, sfEvent
 	{
 		if (event->type == sfEvtMouseButtonReleased)
 		{
-			if (event->mouseButton.button == sfMouseLeft)
+			if (event->ev.mouseButton.button == sfMouseLeft)
 			{
 				return DS_NEXT_REPLY;
 			}
-			else if (event->mouseButton.button == sfMouseRight)
+			else if (event->ev.mouseButton.button == sfMouseRight)
 			{
 				return DS_ACCEPT_REPLY;
 			}
 		}
 		else if (event->type == sfEvtKeyReleased)
 		{
-			if (event->key.code == sfKeyEscape && g_dialog_escapable)
+			if (event->ev.key.code == sfKeyEscape && g_dialog_escapable)
 			{
 				return DS_CLOSE_DIALOG;
 			}
-			else if (event->key.code == sfKeyReturn)
+			else if (event->ev.key.code == sfKeyReturn)
 			{
 				return DS_ACCEPT_REPLY;
 			}
@@ -221,7 +221,7 @@ static dialog_state_t update_dialog_reply(dialog_action_t act)
 	}
 
 	drawing_control_remove_sprite_from_chain(SCI_DIALOG_BUBBLE);
-	drawing_control_remove_sprite_from_chain(++g_4bae.frame_sc_index);
+	drawing_control_remove_sprite_from_chain(fsi_inc());
 	restore_window();
 
 	return (act == DA_NEXT_REPLY) ? DS_NEXT_REPLY : DS_ACCEPT_REPLY;
@@ -275,7 +275,7 @@ static dialog_state_t update_dialog_open_close(int open)
 		if (!open)
 		{
 			drawing_control_remove_sprite_from_chain(SCI_DIALOG_BUBBLE);
-			drawing_control_remove_sprite_from_chain(++g_4bae.frame_sc_index);
+			drawing_control_remove_sprite_from_chain(fsi_inc());
 			restore_window();
 		}
 	}

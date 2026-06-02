@@ -626,6 +626,460 @@ static void opcode_ff(cpu_t *cpu, uint8_t opcode)
 	}
 }
 
+
+
+/* Additional 8086 opcodes */
+
+/* 0x07: POP ES */
+static void opcode_07(cpu_t *cpu, uint8_t opcode)
+{
+    /* ES is not emulated, just pop the value */
+    pop_u16(cpu);
+}
+
+/* 0x0e: PUSH CS */
+static void opcode_0e(cpu_t *cpu, uint8_t opcode)
+{
+    /* CS is fixed, push 0 */
+    push_u16(cpu, 0);
+}
+
+/* 0x16: PUSH SS */
+static void opcode_16(cpu_t *cpu, uint8_t opcode)
+{
+    push_u16(cpu, 0);
+}
+
+/* 0x17: POP SS */
+static void opcode_17(cpu_t *cpu, uint8_t opcode)
+{
+    pop_u16(cpu);
+}
+
+/* 0x1e: PUSH DS */
+static void opcode_1e(cpu_t *cpu, uint8_t opcode)
+{
+    push_u16(cpu, 0);
+}
+
+/* 0x1f: POP DS */
+static void opcode_1f(cpu_t *cpu, uint8_t opcode)
+{
+    pop_u16(cpu);
+}
+
+/* 0x80: ALU rm8 imm8 (grp 0-7) */
+static void opcode_80(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint8_t imm8 = fetch_u8(cpu);
+    uint16_t addr;
+
+    if (modrm.mod == 3) {
+        set_reg_u8(cpu, modrm.rm, (tbl_ops_u8[modrm.reg])(cpu, get_reg_u8(cpu, modrm.rm), imm8));
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        set_mem_u8(cpu, addr, (tbl_ops_u8[modrm.reg])(cpu, get_mem_u8(cpu, addr), imm8));
+    }
+}
+
+/* 0x86: XCHG reg8,rm8 */
+static void opcode_86(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint16_t addr;
+    uint8_t tmp;
+
+    if (modrm.mod == 3) {
+        tmp = get_reg_u8(cpu, modrm.reg);
+        set_reg_u8(cpu, modrm.reg, get_reg_u8(cpu, modrm.rm));
+        set_reg_u8(cpu, modrm.rm, tmp);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        tmp = get_reg_u8(cpu, modrm.reg);
+        set_reg_u8(cpu, modrm.reg, get_mem_u8(cpu, addr));
+        set_mem_u8(cpu, addr, tmp);
+    }
+}
+
+/* 0x87: XCHG reg16,rm16 */
+static void opcode_87(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint16_t addr;
+    uint16_t tmp;
+
+    if (modrm.mod == 3) {
+        tmp = get_reg_u16(cpu, modrm.reg);
+        set_reg_u16(cpu, modrm.reg, get_reg_u16(cpu, modrm.rm));
+        set_reg_u16(cpu, modrm.rm, tmp);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        tmp = get_reg_u16(cpu, modrm.reg);
+        set_reg_u16(cpu, modrm.reg, get_mem_u16(cpu, addr));
+        set_mem_u16(cpu, addr, tmp);
+    }
+}
+
+/* 0x90-0x97: NOP / XCHG AX,reg */
+static void opcode_90(cpu_t *cpu, uint8_t opcode)
+{
+    uint8_t reg = opcode & 0x07;
+    uint16_t ax = get_reg_u16(cpu, REG_AX);
+    uint16_t val = get_reg_u16(cpu, reg);
+    set_reg_u16(cpu, REG_AX, val);
+    set_reg_u16(cpu, reg, ax);
+}
+
+/* 0x98: CBW - sign extend AL to AX */
+static void opcode_98_cbw(cpu_t *cpu, uint8_t opcode)
+{
+    int8_t al = get_reg_u8(cpu, REG_AL);
+    set_reg_u16(cpu, REG_AX, (uint16_t)al);
+}
+
+/* 0x99: CWD - sign extend AX to DX:AX */
+static void opcode_99_cwd(cpu_t *cpu, uint8_t opcode)
+{
+    int16_t ax = (int16_t)get_reg_u16(cpu, REG_AX);
+    set_reg_u16(cpu, REG_AX, ax);
+    set_reg_u16(cpu, REG_DX, (uint16_t)(ax >> 15));
+}
+
+/* 0x9c: PUSHF */
+static void opcode_9c_pushf(cpu_t *cpu, uint8_t opcode)
+{
+    push_u16(cpu, cpu->flags);
+}
+
+/* 0x9d: POPF */
+static void opcode_9d_popf(cpu_t *cpu, uint8_t opcode)
+{
+    cpu->flags = pop_u16(cpu);
+}
+
+/* 0xa0: MOV AL,[addr16] */
+static void opcode_a0(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t addr = fetch_u16(cpu);
+    set_reg_u8(cpu, REG_AL, get_mem_u8(cpu, addr));
+}
+
+/* 0xa1: MOV AX,[addr16] */
+static void opcode_a1(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t addr = fetch_u16(cpu);
+    set_reg_u16(cpu, REG_AX, get_mem_u16(cpu, addr));
+}
+
+/* 0xa2: MOV [addr16],AL */
+static void opcode_a2(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t addr = fetch_u16(cpu);
+    set_mem_u8(cpu, addr, get_reg_u8(cpu, REG_AL));
+}
+
+/* 0xa3: MOV [addr16],AX */
+static void opcode_a3(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t addr = fetch_u16(cpu);
+    set_mem_u16(cpu, addr, get_reg_u16(cpu, REG_AX));
+}
+
+/* 0xa8: TEST AL,imm8 */
+static void opcode_a8(cpu_t *cpu, uint8_t opcode)
+{
+    uint8_t imm8 = fetch_u8(cpu);
+    test_u8(cpu, get_reg_u8(cpu, REG_AL), imm8);
+}
+
+/* 0xa9: TEST AX,imm16 */
+static void opcode_a9(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t imm16 = fetch_u16(cpu);
+    test_u16(cpu, get_reg_u16(cpu, REG_AX), imm16);
+}
+
+/* 0xc2: RET imm16 */
+static void opcode_c2(cpu_t *cpu, uint8_t opcode)
+{
+    uint16_t imm16 = fetch_u16(cpu);
+    cpu->ip = pop_u16(cpu);
+    set_reg_u16(cpu, REG_SP, get_reg_u16(cpu, REG_SP) + imm16);
+}
+
+/* 0xd0: SHL/SHR/ROL etc rm8,1 */
+static void opcode_d0(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint8_t shift_op = modrm.reg;
+    uint16_t addr;
+    uint8_t val, res;
+
+    if (modrm.mod == 3) {
+        val = get_reg_u8(cpu, modrm.rm);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        val = get_mem_u8(cpu, addr);
+    }
+
+    res = val;
+    switch (shift_op) {
+        case 0: /* ROL */
+            res = (val << 1) | (val >> 7);
+            break;
+        case 1: /* ROR */
+            res = (val >> 1) | (val << 7);
+            break;
+        case 2: /* RCL */
+            res = (val << 1) | (get_flag(cpu, F_CF) ? 1 : 0);
+            break;
+        case 3: /* RCR */
+            res = (val >> 1) | (get_flag(cpu, F_CF) ? 0x80 : 0);
+            break;
+        case 4: /* SHL */
+            res = val << 1;
+            break;
+        case 5: /* SHR */
+            res = val >> 1;
+            break;
+        case 6: /* SAL - same as SHL */
+            res = val << 1;
+            break;
+        case 7: /* SAR */
+            res = (uint8_t)((int8_t)val >> 1);
+            break;
+    }
+
+    set_cf_u8(cpu, res);
+    set_zf_u8(cpu, res);
+    set_sf_u8(cpu, res);
+
+    if (modrm.mod == 3) {
+        set_reg_u8(cpu, modrm.rm, res);
+    } else {
+        set_mem_u8(cpu, addr, res);
+    }
+}
+
+/* 0xd1: SHL/SHR/ROL etc rm16,1 */
+static void opcode_d1(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint8_t shift_op = modrm.reg;
+    uint16_t addr;
+    uint16_t val, res;
+
+    if (modrm.mod == 3) {
+        val = get_reg_u16(cpu, modrm.rm);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        val = get_mem_u16(cpu, addr);
+    }
+
+    res = val;
+    switch (shift_op) {
+        case 0: /* ROL */
+            res = (val << 1) | (val >> 15);
+            break;
+        case 1: /* ROR */
+            res = (val >> 1) | (val << 15);
+            break;
+        case 2: /* RCL */
+            res = (val << 1) | (get_flag(cpu, F_CF) ? 1 : 0);
+            break;
+        case 3: /* RCR */
+            res = (val >> 1) | (get_flag(cpu, F_CF) ? 0x8000 : 0);
+            break;
+        case 4: /* SHL */
+            res = val << 1;
+            break;
+        case 5: /* SHR */
+            res = val >> 1;
+            break;
+        case 6: /* SAL */
+            res = val << 1;
+            break;
+        case 7: /* SAR */
+            res = (uint16_t)((int16_t)val >> 1);
+            break;
+    }
+
+    set_cf_u16(cpu, res);
+    set_zf_u16(cpu, res);
+    set_sf_u16(cpu, res);
+
+    if (modrm.mod == 3) {
+        set_reg_u16(cpu, modrm.rm, res);
+    } else {
+        set_mem_u16(cpu, addr, res);
+    }
+}
+
+/* 0xe3: JCXZ */
+static void opcode_e3(cpu_t *cpu, uint8_t opcode)
+{
+    int8_t offt = fetch_u8(cpu);
+    if (get_reg_u16(cpu, REG_CX) == 0)
+        cpu->ip += offt;
+}
+
+/* 0xe9: JMP near relative */
+static void opcode_e9(cpu_t *cpu, uint8_t opcode)
+{
+    int16_t offt = fetch_u16(cpu);
+    cpu->ip += offt;
+}
+
+/* 0xf4: HLT */
+static void opcode_f4(cpu_t *cpu, uint8_t opcode)
+{
+    cpu->state = CPU_HALTED;
+}
+
+/* 0xf5: CMC - complement carry */
+static void opcode_f5(cpu_t *cpu, uint8_t opcode)
+{
+    if (get_flag(cpu, F_CF))
+        clear_flag(cpu, F_CF);
+    else
+        set_flag(cpu, F_CF);
+}
+
+/* 0xf6: TEST/INC/DEC/MUL/DIV (grp 0,6,7) rm8 */
+static void opcode_f6(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint16_t addr;
+    uint8_t val;
+
+    if (modrm.mod == 3) {
+        val = get_reg_u8(cpu, modrm.rm);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        val = get_mem_u8(cpu, addr);
+    }
+
+    switch (modrm.reg) {
+        case 0: /* TEST rm8, imm8 */
+        {
+            uint8_t imm8 = fetch_u8(cpu);
+            test_u8(cpu, val, imm8);
+            break;
+        }
+        case 1: /* TEST rm8, imm8 (same as reg=0) */
+        {
+            uint8_t imm8 = fetch_u8(cpu);
+            test_u8(cpu, val, imm8);
+            break;
+        }
+        case 2: /* NOT rm8 */
+            val = ~val;
+            break;
+        case 3: /* NEG rm8 */
+            val = -val;
+            break;
+        case 6: /* MUL AL */
+        {
+            uint16_t res = (uint16_t)get_reg_u8(cpu, REG_AL) * (uint16_t)val;
+            set_reg_u16(cpu, REG_AX, res);
+            break;
+        }
+        case 7: /* DIV AL */
+        {
+            uint16_t ax = get_reg_u16(cpu, REG_AX);
+            if (val != 0) {
+                set_reg_u8(cpu, REG_AL, ax / val);
+                set_reg_u8(cpu, REG_AH, ax % val);
+            }
+            break;
+        }
+    }
+
+    if (modrm.mod == 3) {
+        set_reg_u8(cpu, modrm.rm, val);
+    } else {
+        set_mem_u8(cpu, addr, val);
+    }
+}
+
+/* 0xf7: TEST/INC/DEC/MUL/DIV (grp 0,6,7) rm16 */
+static void opcode_f7(cpu_t *cpu, uint8_t opcode)
+{
+    modrm_t modrm = fetch_modrm(cpu);
+    uint16_t addr;
+    uint16_t val;
+
+    if (modrm.mod == 3) {
+        val = get_reg_u16(cpu, modrm.rm);
+    } else {
+        addr = decode_rm_addr(cpu, &modrm);
+        val = get_mem_u16(cpu, addr);
+    }
+
+    switch (modrm.reg) {
+        case 0: /* TEST rm16, imm16 */
+        case 1: {
+            uint16_t imm16 = fetch_u16(cpu);
+            test_u16(cpu, val, imm16);
+            break;
+        }
+        case 2: /* NOT rm16 */
+            val = ~val;
+            break;
+        case 3: /* NEG rm16 */
+            val = -val;
+            break;
+        case 6: /* MUL AX */
+            {
+                uint32_t res = (uint32_t)get_reg_u16(cpu, REG_AX) * (uint32_t)val;
+                set_reg_u16(cpu, REG_AX, res & 0xFFFF);
+                set_reg_u16(cpu, REG_DX, (res >> 16) & 0xFFFF);
+                break;
+            }
+        case 7: /* DIV DX:AX / val */
+            {
+                uint32_t dividend = ((uint32_t)get_reg_u16(cpu, REG_DX) << 16) | get_reg_u16(cpu, REG_AX);
+                if (val != 0) {
+                    set_reg_u16(cpu, REG_AX, (uint16_t)(dividend / val));
+                    set_reg_u16(cpu, REG_DX, (uint16_t)(dividend % val));
+                }
+                break;
+            }
+    }
+
+    if (modrm.mod == 3) {
+        set_reg_u16(cpu, modrm.rm, val);
+    } else {
+        set_mem_u16(cpu, addr, val);
+    }
+}
+
+/* 0xf8: CLC */
+static void opcode_f8(cpu_t *cpu, uint8_t opcode)
+{
+    clear_flag(cpu, F_CF);
+}
+
+/* 0xf9: STC */
+static void opcode_f9(cpu_t *cpu, uint8_t opcode)
+{
+    set_flag(cpu, F_CF);
+}
+
+/* 0xfc: CLD */
+static void opcode_fc(cpu_t *cpu, uint8_t opcode)
+{
+    clear_flag(cpu, F_DF);
+}
+
+/* 0xfd: STD */
+static void opcode_fd(cpu_t *cpu, uint8_t opcode)
+{
+    set_flag(cpu, F_DF);
+}
+
+
 void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 {
 	/* 0x00 */ &opcode_00_cpuops_rm8_r8,
@@ -635,14 +1089,14 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0x04 */ &opcode_04_cpuops_al_imm8,
 	/* 0x05 */ &opcode_05_cpuops_ax_imm16,
 	/* 0x06 */ NULL,
-	/* 0x07 */ NULL,
+	/* 0x07 */ &opcode_07,
 	/* 0x08 */ &opcode_00_cpuops_rm8_r8,
 	/* 0x09 */ &opcode_01_cpuops_rm16_r16,
 	/* 0x0a */ &opcode_02_cpuops_r8_rm8,
 	/* 0x0b */ &opcode_03_cpuops_r16_rm16,
 	/* 0x0c */ &opcode_04_cpuops_al_imm8,
 	/* 0x0d */ &opcode_05_cpuops_ax_imm16,
-	/* 0x0e */ NULL,
+	/* 0x0e */ &opcode_0e,
 	/* 0x0f */ NULL,
 	/* 0x10 */ &opcode_00_cpuops_rm8_r8,
 	/* 0x11 */ &opcode_01_cpuops_rm16_r16,
@@ -650,16 +1104,16 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0x13 */ &opcode_03_cpuops_r16_rm16,
 	/* 0x14 */ &opcode_04_cpuops_al_imm8,
 	/* 0x15 */ &opcode_05_cpuops_ax_imm16,
-	/* 0x16 */ NULL,
-	/* 0x17 */ NULL,
+	/* 0x16 */ &opcode_16,
+	/* 0x17 */ &opcode_17,
 	/* 0x18 */ &opcode_00_cpuops_rm8_r8,
 	/* 0x19 */ &opcode_01_cpuops_rm16_r16,
 	/* 0x1a */ &opcode_02_cpuops_r8_rm8,
 	/* 0x1b */ &opcode_03_cpuops_r16_rm16,
 	/* 0x1c */ &opcode_04_cpuops_al_imm8,
 	/* 0x1d */ &opcode_05_cpuops_ax_imm16,
-	/* 0x1e */ NULL,
-	/* 0x1f */ NULL,
+	/* 0x1e */ &opcode_1e,
+	/* 0x1f */ &opcode_1f,
 	/* 0x20 */ &opcode_00_cpuops_rm8_r8,
 	/* 0x21 */ &opcode_01_cpuops_rm16_r16,
 	/* 0x22 */ &opcode_02_cpuops_r8_rm8,
@@ -756,14 +1210,14 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0x7d */ &opcode_70_jmps_cc,
 	/* 0x7e */ &opcode_70_jmps_cc,
 	/* 0x7f */ &opcode_70_jmps_cc,
-	/* 0x80 */ NULL,
+	/* 0x80 */ &opcode_80,
 	/* 0x81 */ &opcode_81_cpuops_rm16_imm16,
 	/* 0x82 */ NULL,
 	/* 0x83 */ &opcode_83_cpuops_rm16_imm8,
 	/* 0x84 */ &opcode_84_test_rm8_r8,
 	/* 0x85 */ &opcode_85_test_rm16_r16,
-	/* 0x86 */ NULL,
-	/* 0x87 */ NULL,
+	/* 0x86 */ &opcode_86,
+	/* 0x87 */ &opcode_87,
 	/* 0x88 */ &opcode_88,
 	/* 0x89 */ &opcode_89,
 	/* 0x8a */ &opcode_8a,
@@ -772,32 +1226,32 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0x8d */ NULL,
 	/* 0x8e */ NULL,
 	/* 0x8f */ NULL,
-	/* 0x90 */ NULL,
-	/* 0x91 */ NULL,
-	/* 0x92 */ NULL,
-	/* 0x93 */ NULL,
-	/* 0x94 */ NULL,
-	/* 0x95 */ NULL,
-	/* 0x96 */ NULL,
-	/* 0x97 */ NULL,
-	/* 0x98 */ NULL,
-	/* 0x99 */ NULL,
+	/* 0x90 */ &opcode_90,
+	/* 0x91 */ &opcode_90,
+	/* 0x92 */ &opcode_90,
+	/* 0x93 */ &opcode_90,
+	/* 0x94 */ &opcode_90,
+	/* 0x95 */ &opcode_90,
+	/* 0x96 */ &opcode_90,
+	/* 0x97 */ &opcode_90,
+	/* 0x98 */ &opcode_98_cbw,
+	/* 0x99 */ &opcode_99_cwd,
 	/* 0x9a */ NULL,
 	/* 0x9b */ NULL,
-	/* 0x9c */ NULL,
-	/* 0x9d */ NULL,
+	/* 0x9c */ &opcode_9c_pushf,
+	/* 0x9d */ &opcode_9d_popf,
 	/* 0x9e */ NULL,
 	/* 0x9f */ NULL,
-	/* 0xa0 */ NULL,
-	/* 0xa1 */ NULL,
-	/* 0xa2 */ NULL,
-	/* 0xa3 */ NULL,
+	/* 0xa0 */ &opcode_a0,
+	/* 0xa1 */ &opcode_a1,
+	/* 0xa2 */ &opcode_a2,
+	/* 0xa3 */ &opcode_a3,
 	/* 0xa4 */ NULL,
 	/* 0xa5 */ NULL,
 	/* 0xa6 */ NULL,
 	/* 0xa7 */ NULL,
-	/* 0xa8 */ NULL,
-	/* 0xa9 */ NULL,
+	/* 0xa8 */ &opcode_a8,
+	/* 0xa9 */ &opcode_a9,
 	/* 0xaa */ NULL,
 	/* 0xab */ NULL,
 	/* 0xac */ NULL,
@@ -822,7 +1276,7 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0xbf */ &opcode_b8,
 	/* 0xc0 */ NULL,
 	/* 0xc1 */ NULL,
-	/* 0xc2 */ NULL,
+	/* 0xc2 */ &opcode_c2,
 	/* 0xc3 */ &opcode_c3,
 	/* 0xc4 */ NULL,
 	/* 0xc5 */ NULL,
@@ -836,8 +1290,8 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0xcd */ NULL,
 	/* 0xce */ NULL,
 	/* 0xcf */ NULL,
-	/* 0xd0 */ NULL,
-	/* 0xd1 */ NULL,
+	/* 0xd0 */ &opcode_d0,
+	/* 0xd1 */ &opcode_d1,
 	/* 0xd2 */ NULL,
 	/* 0xd3 */ NULL,
 	/* 0xd4 */ NULL,
@@ -855,13 +1309,13 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0xe0 */ NULL,
 	/* 0xe1 */ NULL,
 	/* 0xe2 */ &opcode_e2,
-	/* 0xe3 */ NULL,
+	/* 0xe3 */ &opcode_e3,
 	/* 0xe4 */ NULL,
 	/* 0xe5 */ NULL,
 	/* 0xe6 */ NULL,
 	/* 0xe7 */ NULL,
 	/* 0xe8 */ &opcode_e8,
-	/* 0xe9 */ NULL,
+	/* 0xe9 */ &opcode_e9,
 	/* 0xea */ NULL,
 	/* 0xeb */ &opcode_eb,
 	/* 0xec */ NULL,
@@ -872,16 +1326,16 @@ void (*tbl_opcodes[256])(cpu_t *cpu, uint8_t opcode) =
 	/* 0xf1 */ NULL,
 	/* 0xf2 */ NULL,
 	/* 0xf3 */ NULL,
-	/* 0xf4 */ NULL,
-	/* 0xf5 */ NULL,
-	/* 0xf6 */ NULL,
-	/* 0xf7 */ NULL,
-	/* 0xf8 */ NULL,
-	/* 0xf9 */ NULL,
+	/* 0xf4 */ &opcode_f4,
+	/* 0xf5 */ &opcode_f5,
+	/* 0xf6 */ &opcode_f6,
+	/* 0xf7 */ &opcode_f7,
+	/* 0xf8 */ &opcode_f8,
+	/* 0xf9 */ &opcode_f9,
 	/* 0xfa */ NULL,
 	/* 0xfb */ NULL,
-	/* 0xfc */ NULL,
-	/* 0xfd */ NULL,
+	/* 0xfc */ &opcode_fc,
+	/* 0xfd */ &opcode_fd,
 	/* 0xfe */ &opcode_fe,
 	/* 0xff */ &opcode_ff
 };

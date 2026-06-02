@@ -246,7 +246,7 @@ static void skills_draw_item_desc(uint8_t code, uint8_t version,
 
 	if (code == 0x7F)
 	{
-		sprintf(s, "Credits %d", g_4bae.cash);
+		sprintf(s, "Credits %d", le32(g_4bae.cash));
 		neuro_menu_draw_text(s, l, t);
 	}
 	else
@@ -572,7 +572,7 @@ static skills_state_t skills_use(uint16_t skill)
 {
 	skill -= 0x43;
 
-	if (g_4bae.ui_type == 1)
+	if (le16(g_4bae.ui_type) == 1)
 	{
 		if (skill <= 15 &&
 			(skill == BARGAINING || skill == COPTALK ||
@@ -721,7 +721,7 @@ static void skill_cryptology_apply(char *word)
 
 	for (i = 0; i < 20; i++)
 	{
-		if (_strcmpi(word, g_decodable_words[i]))
+		if (strcasecmp(word, g_decodable_words[i]))
 		{
 			continue;
 		}
@@ -911,7 +911,7 @@ real_world_state_t update_skills()
 			g_skills_anim_data.frame_data = (g_state == SS_OPEN_SKILLS) ?
 				g_open_frame_data : g_close_frame_data;
 			g_skills_anim_data.sprite_chain_index = (g_state == SS_OPEN_SKILLS) ?
-				g_4bae.frame_sc_index : g_4bae.frame_sc_index + 1;
+				le16(g_4bae.frame_sc_index) : le16(g_4bae.frame_sc_index) + 1;
 			window_animation_setup(WA_TYPE_WINDOW_FOLDING, &g_skills_anim_data);
 		}
 		else if (window_animation_update() == WA_EVENT_COMPLETED)

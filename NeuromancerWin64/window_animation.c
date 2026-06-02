@@ -58,7 +58,7 @@ static void page_turning_renderer_hook(sfRenderWindow *window, sfVector2f *scale
 	sfRectangleShape_setFillColor(rect, color);
 	sfRectangleShape_setScale(rect, *scale);
 
-	sfRenderWindow_drawShape(window, (sfShape*)rect, NULL);
+	sfRenderWindow_drawRectangleShape(window, (sfRectangleShape*)rect, NULL);
 	sfRectangleShape_destroy(rect);
 }
 
@@ -167,7 +167,7 @@ static void screen_fade_renderer_hook(sfRenderWindow *window, sfVector2f *scale)
 	sfRectangleShape_setSize(fader, size);
 	sfRectangleShape_setScale(fader, *scale);
 
-	sfRenderWindow_drawShape(window, (sfShape*)fader, NULL);
+	sfRenderWindow_drawRectangleShape(window, (sfRectangleShape*)fader, NULL);
 	sfRectangleShape_destroy(fader);
 }
 
@@ -280,7 +280,7 @@ static void prepare_page_turning()
 		break;
 
 	default:
-		assert(0);
+		{break;}
 	}
 }
 
@@ -314,7 +314,7 @@ static void prepare_text_scrolling()
 		break;
 
 	default:
-		assert(0);
+		{break;}
 	}
 }
 

@@ -85,12 +85,12 @@ void pax_send_mgs()
 
 	if (strcmp(addressee, "armitage") ||
 		!strstr(text, "056306118") ||
-		g_4bae.msg_to_armitage_sent != 0)
+		le16(g_4bae.msg_to_armitage_sent) != 0)
 	{
 		return;
 	}
 
-	g_4bae.msg_to_armitage_sent = 1;
+	g_4bae.msg_to_armitage_sent = le16(1);
 	g_4bae.x4c5c = 0;
 
 	uint16_t index = g_4bae.bank_last_transacton_record_index;
@@ -99,7 +99,7 @@ void pax_send_mgs()
 	g_4bae.bank_transaction_record[index].amount = 10000;
 
 	g_4bae.bank_last_transacton_record_index = (index + 1) & 3;
-	g_4bae.bank_account += 10000;
+	g_4bae.bank_account = le32(le32(g_4bae.bank_account) + 10000);
 }
 
 static pax_state_t pax_board_send()
@@ -299,7 +299,7 @@ static pax_state_t pax_info_menu(int type, int next_page)
 
 static pax_state_t pax_board_view()
 {
-	assert(resource_manager_load_resource("PAXBBS.BIH", g_pax_data));
+        resource_manager_load_resource("PAXBBS.BIH", g_pax_data);
 
 	neuro_window_clear();
 	neuro_window_set_draw_string_offt(8, 8);
@@ -333,7 +333,7 @@ static pax_state_t pax_board()
 
 static pax_state_t pax_news()
 {
-	assert(resource_manager_load_resource("NEWS.BIH", g_pax_data));
+	resource_manager_load_resource("NEWS.BIH", g_pax_data);
 
 	neuro_window_clear();
 	neuro_window_set_draw_string_offt(8, 8);
@@ -435,11 +435,11 @@ static pax_state_t pax_banking()
 	neuro_window_draw_string(g_4bae.name + 2, 2);
 
 	neuro_window_set_draw_string_offt(80, 32);
-	sprintf(str, "%d", g_4bae.cash);
+	sprintf(str, "%d", le32(g_4bae.cash));
 	neuro_window_draw_string(str, 2);
 
 	neuro_window_set_draw_string_offt(232, 32);
-	sprintf(str, "%d", g_4bae.bank_account);
+	sprintf(str, "%d", le32(g_4bae.bank_account));
 	neuro_window_draw_string(str, 2);
 
 	neuro_window_add_button(&g_pax_banking_buttons.exit);
@@ -452,7 +452,7 @@ static pax_state_t pax_banking()
 
 static pax_state_t pax_user_info()
 {
-	assert(resource_manager_load_resource("FTUSER.TXH", g_pax_data));
+	resource_manager_load_resource("FTUSER.TXH", g_pax_data);
 
 	neuro_window_clear();
 	neuro_window_flush_buttons();
@@ -797,23 +797,23 @@ static pax_state_t on_pax_bank_account_operation_text_enter(int state, sfTextEve
 
 		if (state == PS_BANK_DOWNLOAD)
 		{
-			if (val > g_4bae.bank_account)
+			if (val > le32(g_4bae.bank_account))
 			{
 				return pax_banking();
 			}
 
-			g_4bae.bank_account -= val;
-			g_4bae.cash += val;
+			g_4bae.bank_account = le32(le32(g_4bae.bank_account) - val);
+			g_4bae.cash = le32(le32(g_4bae.cash) + val);
 		}
 		else
 		{
-			if (val > g_4bae.cash)
+			if (val > le32(g_4bae.cash))
 			{
 				return pax_banking();
 			}
 
-			g_4bae.cash -= val;
-			g_4bae.bank_account += val;
+			g_4bae.cash = le32(le32(g_4bae.cash) - val);
+			g_4bae.bank_account = le32(le32(g_4bae.bank_account) + val);
 		}
 
 		uint16_t op = (state == PS_BANK_DOWNLOAD) ? 0x40 : 0;
@@ -852,7 +852,7 @@ static void pax_board_send_msg_text_handle_kboard(sfKeyEvent *event)
 {
 	int pos = g_send_msg_carriage_pos;
 
-	if (event->type == sfEvtKeyPressed)
+	if (1)
 	{
 		if (event->code == sfKeyLeft && g_send_msg_carriage_pos > 0)
 		{
@@ -898,7 +898,7 @@ static void pax_board_send_msg_adressee_handle_kboard(sfKeyEvent *event)
 {
 	int pos = g_send_msg_carriage_pos;
 
-	if (event->type == sfEvtKeyPressed)
+	if (1)
 	{
 		if (event->code == sfKeyLeft && g_send_msg_carriage_pos > 0)
 		{
@@ -1102,7 +1102,7 @@ real_world_state_t update_pax()
 			g_pax_anim_data.frame_data = (g_state == PS_OPEN_PAX) ?
 				g_open_frame_data : g_close_frame_data;
 			g_pax_anim_data.sprite_chain_index = (g_state == PS_OPEN_PAX) ?
-				g_4bae.frame_sc_index : g_4bae.frame_sc_index + 1;
+				le16(g_4bae.frame_sc_index) : le16(g_4bae.frame_sc_index) + 1;
 			window_animation_setup(WA_TYPE_WINDOW_FOLDING, &g_pax_anim_data);
 		}
 		else if (window_animation_update() == WA_EVENT_COMPLETED)
@@ -1116,7 +1116,7 @@ real_world_state_t update_pax()
 			else
 			{
 				g_state = PS_OPEN_PAX;
-				drawing_control_remove_sprite_from_chain(++g_4bae.frame_sc_index);
+				drawing_control_remove_sprite_from_chain(fsi_inc());
 				restore_window();
 				return RWS_NORMAL;
 			}

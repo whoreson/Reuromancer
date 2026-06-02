@@ -1,7 +1,6 @@
 #ifndef _CHARACTER_H
 #define _CHARACTER_H
 
-#include "SFML\Window\Event.h"
 
 typedef enum character_dir_t {
 	CD_NULL = -1,

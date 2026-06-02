@@ -184,10 +184,10 @@ typedef struct neuro_inventory_t {
 typedef struct level_info_t {
 	uint8_t first_dialog_reply;
 	uint8_t total_dialog_replies;
-	uint8_t level_transitions[4];
+	uint8_t level_transitions[4]; // TRBL
 } level_info_t;
 
-typedef struct x3f85_t {
+typedef struct x3f85_t {  // Savegame data chunk
 	neuro_vm_state_t vm_state[35];
 	uint8_t vm_state_end;        // 0x407A
 	level_info_t level_info[58]; // 0x407B
@@ -311,6 +311,7 @@ typedef struct x4bae_t {
 } x4bae_t;
 
 extern x4bae_t g_4bae;
+void g_4bae_init(void);
 
 extern uint16_t g_6a40;
 extern uint16_t g_6a7a;
@@ -339,3 +340,13 @@ extern uint8_t g_c946;
 
 #pragma pack(pop)
 #endif
+static inline uint16_t fsi_dec(void) {
+    uint16_t v = le16(g_4bae.frame_sc_index) - 1;
+    g_4bae.frame_sc_index = le16(v);
+    return v;
+}
+static inline uint16_t fsi_inc(void) {
+    uint16_t old = le16(g_4bae.frame_sc_index);
+    g_4bae.frame_sc_index = le16(old + 1);
+    return old;
+}

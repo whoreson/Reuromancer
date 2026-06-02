@@ -1,8 +1,8 @@
 #ifndef _WINDOW_ANIMATION
+#include "../sfml_stub.h"
 #define _WINDOW_ANIMATION
 
 #include <stdint.h>
-#include <SFML\Graphics.h>
 
 typedef enum window_animation_type_t {
 	WA_TYPE_UNKNOWN = -1,
@@ -63,3 +63,4 @@ void window_animation_setup(window_animation_type_t type, void *data);
 window_animation_event_t window_animation_update();
 
 #endif
+#include "../sfml_stub.h"

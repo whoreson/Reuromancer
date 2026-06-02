@@ -1,8 +1,8 @@
 #ifndef _SCENE_REAL_WORLD_H
 #define _SCENE_REAL_WORLD_H
 
-#include <SFML\Window\Event.h>
 #include <stdint.h>
+#include "../sfml_stub.h"
 
 typedef enum real_world_state_t {
 	RWS_FADE_IN = 0,
@@ -54,3 +54,4 @@ void handle_parts_shop_input(sfEvent *event);
 real_world_state_t update_parts_shop();
 
 #endif
+#include "../sfml_stub.h"

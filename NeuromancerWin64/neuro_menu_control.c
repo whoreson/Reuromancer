@@ -46,7 +46,7 @@ static void build_neuro_menu_text(neuro_menu_t *menu,
 	uint16_t h = menu->bottom - menu->top + 1;
 	uint16_t l = menu->inner_left - menu->left + x_offt;
 	uint16_t t = menu->inner_top - menu->top + y_offt;
-	uint8_t *p = translate_x16_to_x64(menu->pixels_segt, menu->pixels_offt);
+	uint8_t *p = translate_x16_to_x64(le16(menu->pixels_segt), le16(menu->pixels_offt));
 
 	build_string(text, w, h, l, t, p + sizeof(imh_hdr_t));
 }
@@ -106,14 +106,14 @@ void neuro_menu_create(uint16_t mode,
 		h = (h * 8) + 16;
 
 		build_neuro_menu(&g_neuro_menu, l, t, w, h, mode, pixels);
-		drawing_control_add_sprite_to_chain(g_4bae.frame_sc_index--, l, t, pixels, 1);
+		drawing_control_add_sprite_to_chain(fsi_dec(), l, t, pixels, 1);
 		break;
 
 	case 7:
-		assert(7 == 0);
+		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -127,10 +127,10 @@ void neuro_menu_draw_text(char *text, uint16_t l, uint16_t t)
 		break;
 
 	case 7:
-		assert(7 == 0);
+		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -146,10 +146,10 @@ void neuro_menu_add_item(uint16_t l, uint16_t t, uint16_t w,
 		break;
 
 	case 7:
-		assert(7 == 0);
+		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -160,12 +160,11 @@ void neuro_menu_flush_items()
 
 void neuro_menu_flush()
 {
-	assert(g_neuro_menu.mode == 6);
+	if (g_neuro_menu.mode != 6) { fprintf(stderr, "neuro_menu_flush: bad mode %d\n", g_neuro_menu.mode); return; }
 
 	uint16_t h = g_neuro_menu.bottom - g_neuro_menu.top + 1;
 	uint16_t w = g_neuro_menu.width * 2;
-	imh_hdr_t *pixels = (imh_hdr_t*)translate_x16_to_x64(g_neuro_menu.pixels_segt,
-							g_neuro_menu.pixels_offt);
+	imh_hdr_t *pixels = (imh_hdr_t*)translate_x16_to_x64(le16(g_neuro_menu.pixels_segt), le16(g_neuro_menu.pixels_offt));
 	build_text_frame(h, w, pixels);
 }
 
@@ -173,13 +172,13 @@ void neuro_menu_destroy()
 {
 	switch (g_neuro_menu.mode) {
 	case 6:
-		drawing_control_remove_sprite_from_chain(++g_4bae.frame_sc_index);
+		drawing_control_remove_sprite_from_chain(fsi_inc());
 	case 7:
 		neuro_menu_restore();
 		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -232,7 +231,7 @@ static void menu_handle_button_press(neuro_menu_id_t id, int *state, neuro_butto
 
 static void select_menu_button(neuro_menu_t *_menu, neuro_button_t *button)
 {
-	imh_hdr_t *menu = (imh_hdr_t*)translate_x16_to_x64(_menu->pixels_segt, _menu->pixels_offt);
+	imh_hdr_t *menu = (imh_hdr_t*)translate_x16_to_x64(le16(_menu->pixels_segt), le16(_menu->pixels_offt));
 	uint8_t *pixels = (uint8_t*)menu + sizeof(imh_hdr_t);
 	uint32_t item_left = (button->left - _menu->left) / 2;
 	uint32_t item_top = button->top - _menu->top;
@@ -291,18 +290,18 @@ static void neuro_menu_handle_kboard_events(neuro_menu_id_t id, neuro_menu_t *me
 			{
 				select_menu_button(menu, hit);
 				selected = hit;
-				_selected = event->key.code;
+				_selected = event->ev.key.code;
 				*kboard_lock = 1;
 			}
 		}
 		else
 		{
-			menu_handle_kboard(id, state, &event->key);
+			menu_handle_kboard(id, state, &event->ev.key);
 		}
 		break;
 
 	case sfEvtKeyReleased:
-		if (selected && _selected == event->key.code)
+		if (selected && _selected == event->ev.key.code)
 		{
 			unselect_menu_button(menu, selected);
 			menu_handle_button_press(id, state, selected);
@@ -312,12 +311,12 @@ static void neuro_menu_handle_kboard_events(neuro_menu_id_t id, neuro_menu_t *me
 		}
 		else
 		{
-			menu_handle_kboard(id, state, &event->key);
+			menu_handle_kboard(id, state, &event->ev.key);
 		}
 		break;
 
 	case sfEvtTextEntered:
-		menu_handle_text_enter(id, state, &event->text);
+		menu_handle_text_enter(id, state, &event->ev.text);
 		break;
 
 	default:

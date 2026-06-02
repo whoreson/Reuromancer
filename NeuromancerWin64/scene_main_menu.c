@@ -8,6 +8,7 @@
 #include "window_animation.h"
 #include "save_load.h"
 #include <stdio.h>
+#include "sdl_audio.h"
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -64,7 +65,7 @@ void main_menu_handle_text_enter(int *state, sfTextEvent *event)
 
 static main_menu_state_t on_main_menu_new_game_kboard(sfKeyEvent *event)
 {
-	if (event->type == sfEvtKeyReleased &&
+	if (1 &&
 		event->code == sfKeyReturn)
 	{
 		return on_main_menu_new_game_text_input(NULL, 1);
@@ -133,8 +134,11 @@ static void init()
 {
 	memset(g_vga, 0, 320 * 200 * 4);
 
-	assert(resource_manager_load_resource("TITLE.IMH", g_seg010.background));
+        resource_manager_load_resource("TITLE.IMH", g_seg010.background);
 	drawing_control_add_sprite_to_chain(SCI_BACKGRND, 0, 0, g_seg010.background, 1);
+
+	sdl_audio_play_track(1); /* Title screen theme */
+
 
 	neuro_menu_create(6, 5, 20, 10, 1, NULL);
 	neuro_menu_draw_text("New/Load", 1, 0);
@@ -173,6 +177,7 @@ static neuro_scene_id_t update()
 static void deinit()
 {
 	drawing_control_remove_sprite_from_chain(SCI_BACKGRND);
+	sdl_audio_stop();
 }
 
 void setup_main_menu_scene()

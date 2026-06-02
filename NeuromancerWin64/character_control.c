@@ -76,8 +76,8 @@ character_dir_t character_control_update()
 	{
 		elapsed = passed;
 
-		g_4bae.roompos_x = ch_sprite->left;
-		g_4bae.roompos_y = ch_sprite->top;
+		g_4bae.roompos_x = le16(ch_sprite->left);
+		g_4bae.roompos_y = le16(ch_sprite->top);
 
 		uint16_t l = g_8cee[CD_LEFT][0] * 2;
 		uint16_t r = (g_8cee[CD_RIGHT][0] + g_8cee[CD_RIGHT][2]) * 2;

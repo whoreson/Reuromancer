@@ -65,7 +65,7 @@ int neuro_window_setup(uint16_t mode, ...)
 
 		build_text_frame(g_neuro_window.bottom - g_neuro_window.top + 1,
 			g_neuro_window.right - g_neuro_window.left + 1, (imh_hdr_t*)g_seg011.data);
-		drawing_control_add_sprite_to_chain(g_4bae.frame_sc_index--,
+		drawing_control_add_sprite_to_chain(fsi_dec(),
 			g_neuro_window.left, g_neuro_window.top, g_seg011.data, 1);
 		break;
 
@@ -78,7 +78,7 @@ int neuro_window_setup(uint16_t mode, ...)
 
 		build_text_frame(g_neuro_window.bottom - g_neuro_window.top + 1,
 			g_neuro_window.right - g_neuro_window.left + 1, (imh_hdr_t*)g_seg012.data);
-		drawing_control_add_sprite_to_chain(g_4bae.frame_sc_index--,
+		drawing_control_add_sprite_to_chain(fsi_dec(),
 			g_neuro_window.left, g_neuro_window.top, g_seg012.data, 1);
 		break;
 
@@ -87,7 +87,7 @@ int neuro_window_setup(uint16_t mode, ...)
 	case NWM_NPC_DIALOG_REPLY: {
 		va_list args;
 		va_start(args, mode);
-		uint16_t lines = va_arg(args, uint16_t);
+		uint16_t lines = va_arg(args, unsigned int);
 		va_end(args);
 
 		g_neuro_window.left = 0;
@@ -97,32 +97,32 @@ int neuro_window_setup(uint16_t mode, ...)
 		g_neuro_window.c928 = lines;
 		g_neuro_window.c944 = 160;
 
-		if (g_4bae.ui_type == 0)
+		if (le16(g_4bae.ui_type) == 0)
 		{
 			if (g_neuro_window.mode == NWM_PLAYER_DIALOG_CHOICE)
 			{
-				if (g_4bae.roompos_x < 0xA0)
+				if (le16(g_4bae.roompos_x) < 0xA0)
 				{
 					drawing_control_add_sprite_to_chain(SCI_DIALOG_BUBBLE,
-						g_4bae.roompos_x + 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0x1A2, 0);
+						le16(g_4bae.roompos_x) + 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0x1A2, 0);
 				}
 				else
 				{
 					drawing_control_add_sprite_to_chain(SCI_DIALOG_BUBBLE,
-						g_4bae.roompos_x - 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0xDC, 0);
+						le16(g_4bae.roompos_x) - 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0xDC, 0);
 				}
 			}
 			else
 			{
-				if (g_4bae.roompos_x < 0xA0)
+				if (le16(g_4bae.roompos_x) < 0xA0)
 				{
 					drawing_control_add_sprite_to_chain(SCI_DIALOG_BUBBLE,
-						g_4bae.roompos_x + 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0x6E, 0);
+						le16(g_4bae.roompos_x) + 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles + 0x6E, 0);
 				}
 				else
 				{
 					drawing_control_add_sprite_to_chain(SCI_DIALOG_BUBBLE,
-						g_4bae.roompos_x - 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles, 0);
+						le16(g_4bae.roompos_x) - 8, g_neuro_window.bottom + 1, g_seg014.dialog_bubbles, 0);
 				}
 			}
 		}
@@ -133,7 +133,7 @@ int neuro_window_setup(uint16_t mode, ...)
 	}
 
 	default:
-		assert(0);
+		break;
 	}
 
 	return 0;
@@ -150,21 +150,21 @@ void neuro_window_draw_string(char *text, ...)
 	case NWM_PAX: {
 		va_list args;
 		va_start(args, text);
-		uint16_t up = va_arg(args, uint16_t);
+		uint16_t up = va_arg(args, unsigned int);
 		va_end(args);
 
 		imh_hdr_t *imh = (imh_hdr_t*)g_seg011.data;
 
 		if (up)
 		{
-			build_string(text, imh->width * 2, imh->height,
+			build_string(text, imh_w(imh) * 2, imh_h(imh),
 				g_neuro_window.c92a, g_neuro_window.c92c, g_seg011.data + sizeof(imh_hdr_t));
 		}
 		else
 		{
 			uint32_t t = g_neuro_window.bottom -
 				g_neuro_window.top - g_neuro_window.c92c - 7;
-			build_string(text, imh->width * 2, imh->height,
+			build_string(text, imh_w(imh) * 2, imh_h(imh),
 				g_neuro_window.c92a, t, g_seg011.data + sizeof(imh_hdr_t));
 		}
 
@@ -174,12 +174,12 @@ void neuro_window_draw_string(char *text, ...)
 	case NWM_INVENTORY: {
 		va_list args;
 		va_start(args, text);
-		uint16_t left = va_arg(args, uint16_t);
-		uint16_t top = va_arg(args, uint16_t);
+		uint16_t left = va_arg(args, unsigned int);
+		uint16_t top = va_arg(args, unsigned int);
 		va_end(args);
 
 		imh_hdr_t *imh = (imh_hdr_t*)g_seg012.data;
-		build_string(text, imh->width * 2, imh->height, left, top, g_seg012.data + sizeof(imh_hdr_t));
+		build_string(text, imh_w(imh) * 2, imh_h(imh), left, top, g_seg012.data + sizeof(imh_hdr_t));
 
 		break;
 	}
@@ -187,9 +187,9 @@ void neuro_window_draw_string(char *text, ...)
 	case NWM_PLAYER_DIALOG_REPLY: {
 		va_list args;
 		va_start(args, text);
-		uint16_t l = va_arg(args, uint16_t);
-		uint16_t t = va_arg(args, uint16_t);
-		uint16_t mode = va_arg(args, uint16_t);
+		uint16_t l = va_arg(args, unsigned int);
+		uint16_t t = va_arg(args, unsigned int);
+		uint16_t mode = va_arg(args, unsigned int);
 		va_end(args);
 
 		if (mode != 0)
@@ -197,20 +197,20 @@ void neuro_window_draw_string(char *text, ...)
 			imh_hdr_t *imh = (imh_hdr_t*)g_seg011.data;
 			l = (l * 8) + 8;
 			t = (t * 8) + 8;
-			build_string(text, imh->width * 2, imh->height, l, t, g_seg011.data + sizeof(imh_hdr_t));
+			build_string(text, imh_w(imh) * 2, imh_h(imh), l, t, g_seg011.data + sizeof(imh_hdr_t));
 			break;
 		}
 	}
 	case NWM_PLAYER_DIALOG_CHOICE:
 	case NWM_NPC_DIALOG_REPLY: {
 		imh_hdr_t *imh = (imh_hdr_t*)g_seg011.data;
-		build_string(text, imh->width * 2, imh->height, 8, 8, g_seg011.data + sizeof(imh_hdr_t));
-		drawing_control_add_sprite_to_chain(g_4bae.frame_sc_index--, 0, g_neuro_window.top, g_seg011.data, 1);
+		build_string(text, imh_w(imh) * 2, imh_h(imh), 8, 8, g_seg011.data + sizeof(imh_hdr_t));
+		drawing_control_add_sprite_to_chain(fsi_dec(), 0, g_neuro_window.top, g_seg011.data, 1);
 		break;
 	}
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -227,7 +227,7 @@ int neuro_window_add_button(neuro_button_t *button)
 		break;
 
 	default:
-		assert(0);
+		break;
 	}
 
 	return 0;
@@ -253,7 +253,7 @@ void neuro_window_clear()
 		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
@@ -268,14 +268,16 @@ void neuro_window_flush_buttons()
 		break;
 
 	default:
-		assert(0);
+		break;
 	}
 }
 
 void neuro_window_set_draw_string_offt(uint16_t l, uint16_t t)
 {
-	assert((g_neuro_window.mode == 2) || (g_neuro_window.mode == 3));
-
+	if ((g_neuro_window.mode != 2) && (g_neuro_window.mode != 3)) {
+	 fprintf(stderr, "neuro_window_set_draw_string_offt: bad mode %d\n", g_neuro_window.mode);
+	 return;
+	}
 	g_neuro_window.c92a = l;
 	g_neuro_window.c92c = t;
 }
@@ -387,8 +389,9 @@ static neuro_button_t* window_button_kboard_hit_test()
 	for (uint16_t u = 0; u < g_neuro_window.total_items; u++)
 	{
 		neuro_button_t *hit =
-			(neuro_button_t*)translate_x16_to_x64(DSEG, g_neuro_window.item[u]);
+			(neuro_button_t*)translate_x16_to_x64(DSEG, le16(g_neuro_window.item[u]));
 
+		if (hit == NULL) continue;
 		sfKeyCode key = ascii_toSfKeyCode(hit->label);
 
 		if (key == sfKeyUnknown)
@@ -419,18 +422,18 @@ static void neuro_window_handle_kboard_events(int *state, sfEvent *event, int *k
 			{
 				select_window_button(hit);
 				selected = hit;
-				_selected = event->key.code;
+				_selected = event->ev.key.code;
 				*kboard_lock = 1;
 			}
 		}
 		else
 		{
-			window_handle_kboard(state, &event->key);
+			window_handle_kboard(state, &event->ev.key);
 		}
 		break;
 
 	case sfEvtKeyReleased:
-		if (selected && _selected == event->key.code)
+		if (selected && _selected == event->ev.key.code)
 		{
 			unselect_window_button(selected);
 			window_handle_button_press(state, selected);
@@ -440,12 +443,12 @@ static void neuro_window_handle_kboard_events(int *state, sfEvent *event, int *k
 		}
 		else
 		{
-			window_handle_kboard(state, &event->key);
+			window_handle_kboard(state, &event->ev.key);
 		}
 		break;
 
 	case sfEvtTextEntered:
-		window_handle_text_enter(state, &event->text);
+		window_handle_text_enter(state, &event->ev.text);
 		break;
 
 	default:
@@ -460,7 +463,7 @@ static neuro_button_t* window_button_mouse_hit_test()
 	for (uint16_t u = 0; u < g_neuro_window.total_items; u++)
 	{
 		neuro_button_t *hit =
-			(neuro_button_t*)translate_x16_to_x64(DSEG, g_neuro_window.item[u]);
+			(neuro_button_t*)translate_x16_to_x64(DSEG, le16(g_neuro_window.item[u]));
 
 		if (cursor->left > hit->left && cursor->left < hit->right &&
 			cursor->top > hit->top && cursor->top < hit->bottom)

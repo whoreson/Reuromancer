@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <SFML\Graphics.h>
+#include "../sfml_stub.h"
+#include "sdl_audio.h"
 
 /*
  * Video mode.
@@ -193,10 +194,20 @@ int main(int argc, char *argv[])
 	g_timer = sfClock_create();
 
 	reset();
+	g_4bae_init();
 	resource_manager_init();
-	scene_control_setup_scene(NSID_MAIN_MENU);
-	srand((uint32_t)time(NULL));
 	g_cpu = cpu_new(neuro_cb);
+	if (getenv("AUTO_START")) {
+		strcpy(g_4bae.name + 2, "Case");
+		scene_control_setup_scene(NSID_REAL_WORLD);
+	} else {
+		scene_control_setup_scene(NSID_MAIN_MENU);
+	}
+
+	/* Initialize audio */
+	sdl_audio_init();
+	sdl_audio_set_volume(0.3f);
+	srand((uint32_t)time(NULL));
 
 	while (sfRenderWindow_isOpen(g_window) && !g_exit_game)
 	{
@@ -208,6 +219,10 @@ int main(int argc, char *argv[])
 			}
 			else if (g_scene.handle_input)
 			{
+				if (event.ev.key.code == 77) /* M = toggle mute */
+				{
+					sdl_audio_toggle_mute();
+				}
 				g_scene.handle_input(&event);
 			}
 		}
@@ -224,6 +239,7 @@ int main(int argc, char *argv[])
 	g_scene.deinit();
 	resource_manager_deinit();
 	cpu_destroy(g_cpu);
+	sdl_audio_shutdown();
 
 	sfClock_destroy(g_timer);
 	sfRenderWindow_destroy(g_window);

@@ -1,8 +1,8 @@
 #ifndef _NEURO_WINDOW_CONTROL_H
+#include "../sfml_stub.h"
 #define _NEURO_WINDOW_CONTROL_H
 
 #include <neuro_routines.h>
-#include <SFML\Window\Event.h>
 
 typedef enum neuro_window_mode_t {
 	NWM_NEURO_UI = 0,
@@ -67,3 +67,4 @@ void rw_dialog_handle_text_enter(int *state, sfTextEvent *event);
 void rw_dialog_handle_kboard(int *state, sfKeyEvent *event);
 
 #endif
+#include "../sfml_stub.h"

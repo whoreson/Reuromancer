@@ -1,7 +1,7 @@
 #include "neuro_routines.h"
 
-int asm_set_track_on_playback(int track_num);
-int asm_get_sample();
+void asm_set_track_on_playback(int track_num);
+uint16_t asm_get_sample(void);
 
 static const float g_timer_divisor = 0x13b1;
 static const float g_timer_clock_hz = 1193180;

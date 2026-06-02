@@ -192,7 +192,7 @@ ui_panel_mode_t g_ui_panel_mode = UI_PM_CASH;
 uint8_t g_3b94[64];
 
 x3f85_t g_3f85 = {
-	{
+	{   // vm_state  [35]
 		{ 0x00, 0xC1, 0xFF, 0x0000, 0x24, 0x28 },
 		{ 0x01, 0xE9, 0xFF, 0x0000, 0x1E, 0x27 },
 		{ 0x02, 0x01, 0xFF, 0x0000, 0x19, 0x3D },
@@ -229,8 +229,8 @@ x3f85_t g_3f85 = {
 		{ 0x34, 0xE1, 0xFF, 0x0000, 0x5C, 0x32 },
 		{ 0x37, 0x41, 0xFF, 0x0000, 0x54, 0x29 },
 	},
-	0xFF,
-	.level_info = {
+	0xFF,  // vm_state_end
+	.level_info = {  // level_info [58]
 		{ 0xFF, 0x00, { 0xFF, 0xFF, 0x01, 0xFF} },
 		{ 0xFF, 0x00, { 0xFF, 0x04, 0xFF, 0xFF} },
 		{ 0xFF, 0x00, { 0x01, 0xFF, 0xFF, 0xFF} },
@@ -290,7 +290,7 @@ x3f85_t g_3f85 = {
 		{ 0xFF, 0x00, { 0xFF, 0xFF, 0xFF, 0x35} },
 		{ 0xFF, 0x00, { 0xFF, 0xFF, 0xFF, 0x36} }
 	},
-	.inventory = {
+	.inventory = { // neuro_inventory_t
 		.items = {
 			0x5F, 0x00, 0x00, 0x00, 0x53, 0x00, 0x00, 0x00,
 			0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
@@ -358,7 +358,7 @@ x3f85_t g_3f85 = {
 };
 
 /* 0x475B */
-uint8_t g_inventory_item_operations[128] = {
+uint8_t g_inventory_item_operations[128] = {  // bit 7 = can use?
 	0x25, 0x27, 0x23, 0x01, 0x29, 0x22, 0x22, 0x10,
 	0x24, 0x2B, 0x00, 0x22, 0x21, 0x22, 0x22, 0x23,
 	0x23, 0x23, 0x22, 0x22, 0x26, 0x22, 0x01, 0x27,
@@ -503,4 +503,38 @@ a8e0_t g_a8e0 = {
 	{ 0, }, { 0, }
 };
 
-uint8_t g_c946 = 0;
+uint8_t g_c946 = 0;  // Selected item?
+
+/* Re-initialize g_4bae multi-byte fields in LE format.
+ * On BE platforms, the C struct initializer stores values in native (BE) order,
+ * but the 8086 emulator and C read accessors (le16/le32) expect LE byte order.
+ * On LE platforms, this is a no-op. */
+void g_4bae_init(void)
+{
+	/* Already correct on LE; on BE these overwrite the native-endian init values */
+	g_4bae.active_item = le16(0xffff);
+	g_4bae.x4bf6[0] = 0x4C; g_4bae.x4bf6[1] = 0;
+	g_4bae.x4c06 = le16(0xFFFF);
+	g_4bae.x4c2f = le16(0x3E8);
+	g_4bae.x4c47 = le16(0xA120);
+	g_4bae.x4c49 = le16(7);
+	g_4bae.x4c4b = le16(0x7530);
+	g_4bae.cash = le32(6);
+	g_4bae.x4c87 = le16(0x7D0);
+	g_4bae.bank_account = le32(2000);
+	g_4bae.constitution = le16(2000);
+	g_4bae.level_n = le16(0);
+	g_4bae.roompos_x = le16(0xA0);
+	g_4bae.roompos_y = le16(0x69);
+	g_4bae.x4ca7 = le16(0);
+	g_4bae.bank_transaction_record[0].op = le16(0x40); g_4bae.bank_transaction_record[0].amount = le32(120);
+	g_4bae.bank_transaction_record[1].op = le16(0x40); g_4bae.bank_transaction_record[1].amount = le32(56);
+	g_4bae.bank_transaction_record[2].op = le16(0x40); g_4bae.bank_transaction_record[2].amount = le32(75);
+	g_4bae.bank_transaction_record[3].op = le16(0xC0); g_4bae.bank_transaction_record[3].amount = le32(1000);
+	g_4bae.ui_type = le16(0);
+	g_4bae.x4cc3 = le16(0);
+	g_4bae.x4cc5 = le16(0);
+	g_4bae.x4cc7 = le16(0);
+	g_4bae.x4cc9 = le16(0);
+	g_4bae.frame_sc_index = le16(2);
+}
