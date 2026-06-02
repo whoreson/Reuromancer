@@ -35,7 +35,6 @@ OBJS = \
     $(CURDIR)/$(OBJ_DIR)/$(LIB)/sdl_audio.o \
     $(CURDIR)/$(OBJ_DIR)/$(LIB)/seg7_data.o \
     $(CURDIR)/$(OBJ_DIR)/$(LIB)/audio.o \
-    $(CURDIR)/$(OBJ_DIR)/$(LIB)/sdl_audio.o \
     $(CURDIR)/$(OBJ_DIR)/$(LIB)/resources_lists.o \
     $(CURDIR)/$(OBJ_DIR)/$(REU)/address_translator.o \
     $(CURDIR)/$(OBJ_DIR)/$(REU)/bg_animation_control.o \
@@ -78,8 +77,8 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-# sfml_stub is in parent dir
-$(CURDIR)/$(OBJ_DIR)/sfml_stub.o: $(CURDIR)/../sfml_stub.c
+# sfml_stub is in the repo root
+$(CURDIR)/$(OBJ_DIR)/sfml_stub.o: $(CURDIR)/sfml_stub.c
 	@mkdir -p $(CURDIR)/$(OBJ_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
