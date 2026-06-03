@@ -1,3 +1,7 @@
+# Reuromancer - ported to SDL and made endianness-correct
+
+^ what he said
+
 # Reuromancer - Neuromancer Windows Port
 
 Reuromancer is a 64-bit Windows port of MS-DOS version of the [**Neuromancer**][1] game (Interplay Productions, 1988) based on the William Gibson's novel of the same name.
