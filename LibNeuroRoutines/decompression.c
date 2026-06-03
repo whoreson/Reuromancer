@@ -51,14 +51,13 @@ static int decode_imh(uint8_t *_src, uint32_t len, uint8_t *_dst)
 {
 	uint32_t total_len = 0;
 	uint8_t *src = _src, *dst = _dst;
-	imh_hdr_t *imh;
 
-	while (len)
+	while (len >= sizeof(imh_hdr_t))
 	{
-		uint32_t size = 0, processed = 0;
-
-		imh = (imh_hdr_t*)src;
-		size = imh->width * imh->height;
+		uint32_t processed = 0;
+		uint16_t hdr_w = src[4] | (src[5] << 8);
+		uint16_t hdr_h = src[6] | (src[7] << 8);
+		uint32_t size = hdr_w * hdr_h;
 
 		memmove(dst, src, sizeof(imh_hdr_t));
 
@@ -67,8 +66,8 @@ static int decode_imh(uint8_t *_src, uint32_t len, uint8_t *_dst)
 		dst += sizeof(imh_hdr_t);
 		len -= sizeof(imh_hdr_t);
 
-		processed = decode_rle(src, imh->width * imh->height, dst);
-		xor_rows(dst, imh->width, imh->height);
+		processed = decode_rle(src, hdr_w * hdr_h, dst);
+		xor_rows(dst, hdr_w, hdr_h);
 		src += processed;
 		len -= processed;
 		dst += size;

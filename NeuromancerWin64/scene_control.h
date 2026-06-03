@@ -1,8 +1,8 @@
 #ifndef _SCENE_CONTROL_H
+#include "../sfml_stub.h"
 #define _SCENE_CONTROL_H
 
 #include <stdint.h>
-#include <SFML\Window\Event.h>
 
 typedef enum neuro_scene_id_t {
 	NSID_NONE = -1,
@@ -33,3 +33,4 @@ void setup_not_implemented_scene();
 void setup_real_world_scene();
 
 #endif
+#include "../sfml_stub.h"

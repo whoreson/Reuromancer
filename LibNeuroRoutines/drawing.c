@@ -7,8 +7,8 @@ void build_text_frame(uint32_t _h, uint32_t _w, imh_hdr_t *dst)
 	uint32_t w = _w / 2, h = _h;
 
 	memset(dst, 0, sizeof(imh_hdr_t));
-	dst->height = _h;
-	dst->width = _w / 2;
+	write_le16((uint8_t*)dst + 6, _h);
+	write_le16((uint8_t*)dst + 4, _w / 2);
 
 	for (uint32_t u = 0; u < h; u++, p += w)
 	{

@@ -54,8 +54,8 @@ static void _bg_animation_update(bg_animation_control_table_t *tables,
 
 		if (anim->sleep-- == 0)
 		{
-			anh_frame_data_t *data = (anh_frame_data_t*)(anim->first_frame_data) + anim->curr_frame;
-			uint8_t *frame = anim->first_frame_bytes + data->frame_offset;
+            anh_frame_data_t *data = (anh_frame_data_t*)(anim->first_frame_data) + anim->curr_frame;
+            uint8_t *frame = anim->first_frame_bytes + read_le16_bytes((const uint8_t*)data + 2);
 			anh_frame_hdr *hdr = (anh_frame_hdr*)frame;
 
 			uint16_t frame_len = hdr->frame_width * hdr->frame_height;
@@ -93,7 +93,7 @@ static void _bg_animation_update(bg_animation_control_table_t *tables,
 			}
 
 			data = (anh_frame_data_t*)(anim->first_frame_data) + anim->curr_frame;
-			anim->sleep = data->frame_sleep;
+			anim->sleep = read_le16_bytes((const uint8_t*)data + 2);
 		}
 	}
 }

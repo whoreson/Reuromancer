@@ -1,9 +1,6 @@
 #include "data.h"
 #include <stdint.h>
 #include <string.h>
-#include "SFML\Window\Mouse.h"
-#include "SFML\Window\Keyboard.h"
-#include "SFML\Window\Event.h"
 #include "scene_real_world.h"
 
 sfKeyCode ascii_toSfKeyCode(char c)

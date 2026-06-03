@@ -109,29 +109,27 @@ static uint8_t* dseg_x16_to_x64(uint16_t offt)
 		i++;
 	}
 
-	fprintf(stderr, "offt: %d\n", offt);
-	assert(0);
-	return NULL;
+        fprintf(stderr, "dseg_x16_to_x64: not found offt: %d\n", offt);
+        return NULL;
 }
 
 static uint8_t* seg000_x16_to_x64(uint16_t offt)
 {
-	int i = 0;
+        int i = 0;
 
-	while (g_seg000_map[i].offt != 0xFFFF)
-	{
-		if (offt == g_seg000_map[i].offt)
-		{
-			return (uint8_t*)g_seg000_map[i].obj_ptr;
-		}
+        while (g_seg000_map[i].offt != 0xFFFF)
+        {
+                if (offt == g_seg000_map[i].offt)
+                {
+                        return (uint8_t*)g_seg000_map[i].obj_ptr;
+                }
 
-		i++;
-	}
+                i++;
+        }
 
-	assert(0);
-	return NULL;
+        fprintf(stderr, "seg000_x16_to_x64: not found offt: %d\n", offt);
+        return NULL;
 }
-
 uint8_t* translate_x16_to_x64(uint16_t seg, uint16_t offt)
 {
 	switch (seg) {
@@ -150,11 +148,10 @@ uint8_t* translate_x16_to_x64(uint16_t seg, uint16_t offt)
 	case DSEG:
 		return dseg_x16_to_x64(offt);
 
-	default:
-		assert(0);
-	}
-
-	return NULL;
+        default:
+                fprintf(stderr, "translate_x16_to_x64: bad segment %d\n", seg);
+                return NULL;
+        }
 }
 
 static uint16_t dseg_x64_to_x16(uint8_t *src)
@@ -212,11 +209,11 @@ void translate_x64_to_x16(uint8_t *src, uint16_t *seg, uint16_t *offt)
 			else
 			{
 				if (seg) {
-					*seg = SEG_000;
+					write_le16((uint8_t*)seg, SEG_000);
 				}
 
 				if (offt) {
-					*offt = _offt;
+					write_le16((uint8_t*)offt, _offt);
 				}
 
 				return;
@@ -232,11 +229,11 @@ void translate_x64_to_x16(uint8_t *src, uint16_t *seg, uint16_t *offt)
 			else
 			{
 				if (seg) {
-					*seg = DSEG;
+					write_le16((uint8_t*)seg, DSEG);
 				}
 
 				if (offt) {
-					*offt = _offt;
+					write_le16((uint8_t*)offt, _offt);
 				}
 
 				return;
@@ -255,15 +252,18 @@ void translate_x64_to_x16(uint8_t *src, uint16_t *seg, uint16_t *offt)
 		}
 	}
 
-	assert(i != SEGMENTS_TOTAL);
+        if (i == SEGMENTS_TOTAL) {
+                fprintf(stderr, "translate_x64_to_x16: not found src=%p\n", src);
+                return;
+        }
 
-	if (seg)
-	{
-		*seg = g_helper[i].segment;
-	}
+        if (seg)
+        {
+                write_le16((uint8_t*)seg, g_helper[i].segment);
+        }
 
 	if (offt)
 	{
-		*offt = (uint16_t)(src - g_helper[i].data_ptr) + g_helper[i].offset;
+		write_le16((uint8_t*)offt, (uint16_t)(src - g_helper[i].data_ptr) + g_helper[i].offset);
 	}
 }

@@ -1,8 +1,8 @@
 #ifndef _NEURO_MENU_CONTROL_H
+#include "../sfml_stub.h"
 #define _NEURO_MENU_CONTROL_H
 
 #include <neuro_routines.h>
-#include "SFML\Window\Event.h"
 
 typedef enum neuro_menu_id_t {
 	NMID_MAIN_MENU = 0,

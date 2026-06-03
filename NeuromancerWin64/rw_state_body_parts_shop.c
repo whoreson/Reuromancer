@@ -108,7 +108,7 @@ static parts_shop_state_t body_parts_menu_page(int sell, int page)
 	neuro_menu_add_item(9, 5, 4, 0x0B, 'x');
 	neuro_menu_add_item(14, 5, 4, 0x0A, 'm');
 
-	sprintf(credits, "%-8ld", g_4bae.cash);
+	sprintf(credits, "%-8ld", le32(g_4bae.cash));
 	neuro_menu_draw_text(credits, 20, 0);
 
 	for (int i = 0; i < 4; i++)
@@ -165,7 +165,7 @@ static parts_shop_state_t on_buy_parts_menu_button(neuro_button_t *button)
 			uint16_t index = body_part >> 3;
 			uint8_t bit = 0x80 >> (body_part & 7);
 		
-			if (g_4bae.cash < prices[body_part])
+			if (le32(g_4bae.cash) < prices[body_part])
 			{
 				/* play track 6 */
 			}
@@ -173,8 +173,8 @@ static parts_shop_state_t on_buy_parts_menu_button(neuro_button_t *button)
 			{
 				bit = ~bit;
 				g_4bae.sold_body_parts_bitstring[index] &= bit;
-				g_4bae.constitution += g_constitution_damage[body_part];
-				g_4bae.cash -= prices[body_part];
+				g_4bae.constitution = le16(le16(g_4bae.constitution) + g_constitution_damage[body_part]);
+				g_4bae.cash = le32(le32(g_4bae.cash) - prices[body_part]);
 
 				bought_something = 1;
 				/* play track 11 */
@@ -186,7 +186,7 @@ static parts_shop_state_t on_buy_parts_menu_button(neuro_button_t *button)
 	}
 
 	case 0x0B: /* exit */
-		g_4bae.x4c82 = bought_something;
+		g_4bae.x4c82 = le16(bought_something);
 		bought_something = 0;
 		return PSS_CLOSE;
 
@@ -222,8 +222,8 @@ static parts_shop_state_t on_sell_parts_menu_button(neuro_button_t *button)
 			uint8_t bit = 0x80 >> (body_part & 7);
 
 			g_4bae.sold_body_parts_bitstring[index] |= bit;
-			g_4bae.constitution -= g_constitution_damage[body_part];
-			g_4bae.cash += g_body_parts_sell_prices[body_part];
+			g_4bae.constitution = le16(le16(g_4bae.constitution) - g_constitution_damage[body_part]);
+			g_4bae.cash = le32(le32(g_4bae.cash) + g_body_parts_sell_prices[body_part]);
 
 			sold_something = 1;
 			/* play track 11 */
@@ -234,7 +234,7 @@ static parts_shop_state_t on_sell_parts_menu_button(neuro_button_t *button)
 	}
 
 	case 0x0B: /* exit */
-		g_4bae.x4c82 = sold_something;
+		g_4bae.x4c82 = le16(sold_something);
 		sold_something = 0;
 		return PSS_CLOSE;
 
@@ -321,7 +321,7 @@ real_world_state_t update_parts_shop()
 			g_parts_shop_anim_data.frame_data = (g_state == PSS_OPEN) ?
 				g_open_frame_data : g_close_frame_data;
 			g_parts_shop_anim_data.sprite_chain_index = (g_state == PSS_OPEN) ?
-				g_4bae.frame_sc_index : g_4bae.frame_sc_index + 1;
+				le16(g_4bae.frame_sc_index) : le16(g_4bae.frame_sc_index) + 1;
 			window_animation_setup(WA_TYPE_WINDOW_FOLDING, &g_parts_shop_anim_data);
 		}
 		else if (window_animation_update() == WA_EVENT_COMPLETED)

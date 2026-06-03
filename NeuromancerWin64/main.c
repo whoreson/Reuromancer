@@ -12,7 +12,10 @@
 #include <math.h>
 #include <time.h>
 #include "../sfml_stub.h"
+<<<<<<< HEAD
 #include <SDL.h>
+=======
+>>>>>>> 485b19a5663aa85ba642d3ad6c4f5f1f148bc335
 #include "sdl_audio.h"
 
 /*
@@ -291,9 +294,12 @@ int main(int argc, char *argv[])
 	resource_manager_deinit();
 	cpu_destroy(g_cpu);
 	sdl_audio_shutdown();
+<<<<<<< HEAD
 
 	/* Free cached rendering objects */
 	if (g_display_sprite) sfSprite_destroy(g_display_sprite);
+=======
+>>>>>>> 485b19a5663aa85ba642d3ad6c4f5f1f148bc335
 
 	sfClock_destroy(g_timer);
 	sfRenderWindow_destroy(g_window);

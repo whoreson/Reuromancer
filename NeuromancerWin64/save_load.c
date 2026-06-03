@@ -8,12 +8,12 @@
 #include <string.h>
 
 static uint16_t g_4c6b = 0;
-static uint8_t g_savegames[12000];
+static uint8_t g_savegames[12000]; // Four slots, 3000 bytes each ( slotNum * 3000 ).
 
 #pragma pack(push, 1)
 typedef struct neuro_savegame_t {
 	x3f85_t x3f85;
-	x4bae_t x4bae;
+	x4bae_t x4bae;  // progress flags, amounts, name ...
 	uint8_t visited_levels[8];
 	uint8_t x3b94[374];
 	neuro_menu_t neuro_menus[4];
@@ -36,12 +36,12 @@ static void add_slots()
 static void save_game(int slot)
 {
 	char text[17];
-	assert(resource_manager_load_resource("SAVEGAME.SAV", g_savegames));
+	resource_manager_load_resource("SAVEGAME.SAV", g_savegames);
 	neuro_savegame_t *savegame = (neuro_savegame_t*)(g_savegames + (slot * 3000));
 
 	memmove(&savegame->x3f85, &g_3f85, sizeof(x3f85_t));
 	memmove(&savegame->x4bae, &g_4bae, sizeof(x4bae_t));
-	memmove(savegame->visited_levels, g_visited_levels_bitstring, 8);
+	memmove(savegame->visited_levels, g_visited_levels_bitstring, 8); // Level bit flag set when visited.
 
 	memmove(savegame->x3b94, g_3b94, 64);
 	memmove(savegame->x3b94 + 64, g_sprite_chain, 310);
@@ -52,7 +52,7 @@ static void save_game(int slot)
 	memmove(savegame->neuro_windows, g_neuro_windows_pool, 3 * sizeof(neuro_window_t));
 	memmove(&savegame->neuro_windows[3], &g_neuro_window, sizeof(neuro_window_t));
 
-	assert(resource_manager_write_resource("SAVEGAME.SAV", g_savegames));
+	resource_manager_write_resource("SAVEGAME.SAV", g_savegames);
 
 	neuro_menu_flush();
 	neuro_menu_flush_items();
@@ -68,12 +68,12 @@ int on_save_menu_button(neuro_button_t *button)
 	case 1:
 	case 2:
 	case 3: /* slots */
-		g_4bae.x4c6b = g_4c6b;
+		g_4bae.x4c6b = le16(g_4c6b);
 		save_game(button->code);
 		return 1;
 
 	case 0x0A: /* exit */
-		g_4bae.x4c6b = g_4c6b;
+		g_4bae.x4c6b = le16(g_4c6b);
 		return 0;
 	}
 
@@ -88,14 +88,14 @@ void save_menu()
 	neuro_menu_draw_text("Save Game", 4, 0);
 	add_slots();
 
-	g_4c6b = g_4bae.x4c6b;
-	g_4bae.x4c6b = 0;
+	g_4c6b = le16(g_4bae.x4c6b);
+	g_4bae.x4c6b = le16(0);
 }
 
 static void load_game(int slot)
 {
 	neuro_menu_destroy();
-	assert(resource_manager_load_resource("SAVEGAME.SAV", g_savegames));
+	resource_manager_load_resource("SAVEGAME.SAV", g_savegames);
 	neuro_savegame_t *savegame = (neuro_savegame_t*)(g_savegames + (slot * 3000));
 
 	memmove(&g_3f85, &savegame->x3f85, sizeof(x3f85_t));
@@ -131,7 +131,7 @@ int on_load_menu_button(neuro_button_t *button)
 		return 1;
 
 	case 0x0A: /* exit */
-		g_4bae.x4c6b = g_4c6b;
+		g_4bae.x4c6b = le16(g_4c6b);
 		return 0;
 	}
 
@@ -146,6 +146,6 @@ void load_menu()
 	neuro_menu_draw_text("Load Game", 4, 0);
 	add_slots();
 
-	g_4c6b = g_4bae.x4c6b;
-	g_4bae.x4c6b = 0;
+	g_4c6b = le16(g_4bae.x4c6b);
+	g_4bae.x4c6b = le16(0);
 }

@@ -52,7 +52,10 @@ void drawing_control_add_sprite_to_chain(int n,
 	layer->left = left;
 	layer->top = top;
 
-	memmove(&layer->sprite_hdr, sprite, sizeof(imh_hdr_t));
+	layer->sprite_hdr.dx = sprite[0] | (sprite[1] << 8);
+	layer->sprite_hdr.dy = sprite[2] | (sprite[3] << 8);
+	layer->sprite_hdr.width = sprite[4] | (sprite[5] << 8);
+	layer->sprite_hdr.height = sprite[6] | (sprite[7] << 8);
 	translate_x64_to_x16(sprite + sizeof(imh_hdr_t),
 		&layer->pixels_segt, &layer->pixels_offt);
 
@@ -135,7 +138,7 @@ static void draw_sprite_to_vga(sprite_layer_t *sprite)
 	uint32_t w = sprite->sprite_hdr.width * 2;
 	uint32_t h = sprite->sprite_hdr.height;
 	uint32_t bg_transparency = ((sprite->flags >> 4) == 0);
-	uint8_t *pixels = translate_x16_to_x64(sprite->pixels_segt, sprite->pixels_offt);
+	uint8_t *pixels = translate_x16_to_x64(le16(sprite->pixels_segt), le16(sprite->pixels_offt));
 
 	draw_to_vga(left, top, w, h, pixels, bg_transparency);
 }

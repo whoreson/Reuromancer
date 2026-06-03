@@ -32,9 +32,8 @@ static int getbits(int numbits)
 
 static node_t* build_tree(void)
 {
-	node_t *node = (node_t*)calloc(1, sizeof(node_t));
-	assert(node);
-
+        node_t *node = (node_t*)calloc(1, sizeof(node_t));
+        if (!node) return NULL;
 	if (getbits(1)) {
 		node->right = NULL;
 		node->left = NULL;

@@ -219,7 +219,7 @@ real_world_state_t update_disk_options()
 			g_disk_options_anim_data.frame_data = (g_state == DOS_OPEN) ?
 				g_open_frame_data : g_close_frame_data;
 			g_disk_options_anim_data.sprite_chain_index = (g_state == DOS_OPEN) ?
-				g_4bae.frame_sc_index : g_4bae.frame_sc_index + 1;
+				le16(g_4bae.frame_sc_index) : le16(g_4bae.frame_sc_index) + 1;
 			window_animation_setup(WA_TYPE_WINDOW_FOLDING, &g_disk_options_anim_data);
 		}
 		else if (window_animation_update() == WA_EVENT_COMPLETED)

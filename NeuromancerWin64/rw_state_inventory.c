@@ -111,7 +111,7 @@ static inventory_state_t inventory_item_list(int inv_type, int max_items, int pa
 				g_inventory_item_button[listed_on_page].code = listed_on_page;
 				g_inventory_item_code[listed_on_page] = 0x7F;
 
-				sprintf(string, "1.  Credits %d", g_4bae.cash);
+				sprintf(string, "1.  Credits %d", le32(g_4bae.cash));
 				credists = 0;
 			}
 			else
@@ -204,7 +204,7 @@ static void inventory_item_options()
 		}
 	}
 
-	if (i != 4 || g_4bae.level_n == 55)
+	if (i != 4 || le16(g_4bae.level_n) == 55)
 	{
 		neuro_window_draw_string("G. Give Item", 8, 40);
 		g_inventory_item_button[2].code =
@@ -212,7 +212,7 @@ static void inventory_item_options()
 		neuro_window_add_button(&g_inventory_item_button[2]);
 		i = 48;
 	}
-	else if (i == 4 && g_4bae.level_n != 55)
+	else if (i == 4 && le16(g_4bae.level_n) != 55)
 	{
 		i = 40;
 	}
@@ -291,7 +291,7 @@ static inventory_state_t inventory_give_item()
 		char credits[32] = { 0, };
 		neuro_window_draw_string("Give how much?", 8, 16);
 
-		sprintf(credits, "Credits %d", g_4bae.cash);
+		sprintf(credits, "Credits %d", le32(g_4bae.cash));
 		neuro_window_draw_string(credits, 8, 8);
 		neuro_window_draw_string("<", 8, 24);
 		return IS_GIVE_CREDITS;
@@ -438,7 +438,7 @@ static inventory_state_t inventory_operate_item(uint8_t *item)
 			neuro_window_draw_string("Nothing happens.", 8, 16);
 			return IS_WFI_AND_CLOSE;
 		}
-		else if (g_4bae.x4cc5 == 0)
+		else if (le16(g_4bae.x4cc5) == 0)
 		{
 			neuro_window_draw_string("Database only.", 8, 16);
 			return IS_WFI_AND_CLOSE;
@@ -518,7 +518,7 @@ static inventory_state_t on_inventory_give_item_button(neuro_button_t *button)
 	switch (button->code) {
 	case 0x01: /* yes */
 		g_3f85.inventory.items[g_a86a * 4] = 0xFF;
-		g_4bae.active_item = g_c946;
+		g_4bae.active_item = le16(g_c946);
 		g_4bae.x4bbf = 1;
 	case 0x00: /* no */
 		return IS_CLOSE_INVENTORY;
@@ -618,12 +618,12 @@ static inventory_state_t on_inventory_give_credits_text_input(sfTextEvent *event
 		uint32_t val = strlen(input) ? (uint32_t)atoi(input) : 0;
 		memset(input, 0, 9);
 
-		if (val <= g_4bae.cash)
+		if (val <= le32(g_4bae.cash))
 		{
-			g_4bae.cash -= val;
+			g_4bae.cash = le32(le32(g_4bae.cash) - val);
 			g_4bae.x4bbf = 1;
-			g_4bae.active_item = g_c946;
-			g_4bae.cash_withdrawal = val;
+			g_4bae.active_item = le16(g_c946);
+			g_4bae.cash_withdrawal = le32(val);
 
 			return IS_CLOSE_INVENTORY;
 		}
@@ -652,7 +652,7 @@ void rw_inventory_handle_text_enter(int *state, sfTextEvent *event)
 
 static inventory_state_t on_inventory_give_credits_kboard(sfKeyEvent *event)
 {
-	if (event->type == sfEvtKeyReleased &&
+	if (1 &&
 		event->code == sfKeyReturn)
 	{
 		return on_inventory_give_credits_text_input(NULL, 1);
@@ -772,7 +772,7 @@ real_world_state_t update_inventory()
 			g_inv_anim_data.frame_data = (g_state == IS_OPEN_INVENTORY) ?
 				g_open_frame_data : g_close_frame_data;
 			g_inv_anim_data.sprite_chain_index = (g_state == IS_OPEN_INVENTORY) ?
-				g_4bae.frame_sc_index : g_4bae.frame_sc_index + 1;
+				le16(g_4bae.frame_sc_index) : le16(g_4bae.frame_sc_index) + 1;
 			window_animation_setup(WA_TYPE_WINDOW_FOLDING, &g_inv_anim_data);
 		}
 		else if (window_animation_update() == WA_EVENT_COMPLETED)
@@ -786,7 +786,7 @@ real_world_state_t update_inventory()
 			else
 			{
 				g_state = IS_OPEN_INVENTORY;
-				drawing_control_remove_sprite_from_chain(++g_4bae.frame_sc_index);
+				drawing_control_remove_sprite_from_chain(fsi_inc());
 				restore_window();
 				return RWS_NORMAL;
 			}

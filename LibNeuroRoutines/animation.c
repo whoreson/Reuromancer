@@ -10,23 +10,23 @@ int bg_animation_init_tables(bg_animation_control_table_t *tables, uint8_t *deco
 	p += sizeof(anh_hdr_t);
 	entry_hdr = (anh_entry_hdr_t*)p;
 
-	for (uint32_t u = 0; u < hdr->anh_entries; u++)
+	for (uint32_t u = 0; u < le16(hdr->anh_entries); u++)
 	{
 		bg_animation_control_table_t *table = &tables[u];
 		memset(table, 0, sizeof(bg_animation_control_table_t));
 
-		table->total_frames = entry_hdr->total_frames;
+		table->total_frames = le16(entry_hdr->total_frames);
 		table->first_frame_data = (uint8_t*)entry_hdr + sizeof(anh_entry_hdr_t);
 		table->first_frame_bytes = table->first_frame_data +
 			(table->total_frames * sizeof(anh_frame_data_t));
-		table->sleep = *(uint16_t*)(table->first_frame_data);
+		table->sleep = read_le16_bytes(table->first_frame_data);
 		table->curr_frame = 0;
 
-		p += (entry_hdr->entry_size + 2);
+		p += (le16(entry_hdr->entry_size) + 2);
 		entry_hdr = (anh_entry_hdr_t*)p;
 	}
 
-	return hdr->anh_entries;
+	return le16(hdr->anh_entries);
 }
 
 void bg_animation_update(bg_animation_control_table_t *tables,
@@ -39,7 +39,7 @@ void bg_animation_update(bg_animation_control_table_t *tables,
 		if (anim->sleep-- == 0)
 		{
 			anh_frame_data_t *data = (anh_frame_data_t*)(anim->first_frame_data) + anim->curr_frame;
-			uint8_t *frame = anim->first_frame_bytes + data->frame_offset;
+            uint8_t *frame = anim->first_frame_bytes + read_le16_bytes((const uint8_t*)data + 2);
 			anh_frame_hdr *hdr = (anh_frame_hdr*)frame;
 
 			uint16_t frame_len = hdr->frame_width * hdr->frame_height;
@@ -70,7 +70,7 @@ void bg_animation_update(bg_animation_control_table_t *tables,
 				data++;
 			}
 
-			anim->sleep = data->frame_sleep;
+			anim->sleep = read_le16_bytes((const uint8_t*)data + 2);
 		}
 	}
 }

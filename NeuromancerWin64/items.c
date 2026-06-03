@@ -95,7 +95,7 @@ char* get_item_name(uint16_t item_code, char *credits)
 {
 	if (item_code == 0x7F)
 	{
-		sprintf(credits, "Credits %d", g_4bae.cash);
+		sprintf(credits, "Credits %d", le32(g_4bae.cash));
 		return credits;
 	}
 
