@@ -1,7 +1,7 @@
 #include "neuro_routines.h"
 
-int asm_set_track_on_playback(int track_num);
-int asm_get_sample();
+void set_audio_track(int track_num);
+uint16_t get_audio_sample(void);
 
 static const float g_timer_divisor = 0x13b1;
 static const float g_timer_clock_hz = 1193180;
@@ -17,11 +17,11 @@ int build_track_waveform(int track_num, uint8_t *waveform, int len)
 	int silence_counter = 0;
 	uint8_t sample_val = 128, sample_want = 0, sample_step = 32;
 
-	asm_set_track_on_playback(track_num);
+	set_audio_track(track_num);
 
 	while (sample != len)
 	{
-		int divisor = asm_get_sample() & 0xffff;
+		int divisor = get_audio_sample() & 0xffff;
 		float freq_hz = g_timer_clock_hz / divisor;
 		float half_period_sec = (1 / freq_hz) / 2;
 		float temp_half_period = half_period_sec;

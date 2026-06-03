@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <SFML\Graphics.h>
+#include "../sfml_stub.h"
+#include <SDL.h>
+#include "sdl_audio.h"
 
 /*
  * Video mode.
@@ -51,6 +53,24 @@ uint8_t g_exit_game = 0;
  */
 cpu_t *g_cpu = NULL;
 
+/*
+ * Frame rate limiting.
+ */
+#define TARGET_FPS 30
+#define FRAME_TIME_US (1000000 / TARGET_FPS)
+
+/*
+ * Cached display sprite (avoid creating/destroying every frame).
+ */
+static sfSprite *g_display_sprite = NULL;
+static float g_last_scale_x = -1.0f;
+static float g_last_scale_y = -1.0f;
+
+/*
+ * Cursor update tracking (only update when mouse actually moved).
+ */
+static int g_mouse_moved = 0;
+
 void update_cursor()
 {
 	sfVector2i mouse_pos = sfMouse_getPositionRenderWindow(g_window);
@@ -75,8 +95,15 @@ void update_cursor()
 	float mouse_pos_x = (mouse_pos.x / g_scale_x);
 	float mouse_pos_y = (mouse_pos.y / g_scale_y);
 
-	g_sprite_chain[SCI_CURSOR].left = (uint16_t)mouse_pos_x;
-	g_sprite_chain[SCI_CURSOR].top = (uint16_t)mouse_pos_y;
+	uint16_t new_left = (uint16_t)mouse_pos_x;
+	uint16_t new_top = (uint16_t)mouse_pos_y;
+
+	if (g_sprite_chain[SCI_CURSOR].left != new_left ||
+	    g_sprite_chain[SCI_CURSOR].top != new_top) {
+		g_sprite_chain[SCI_CURSOR].left = new_left;
+		g_sprite_chain[SCI_CURSOR].top = new_top;
+		g_mouse_moved = 1;
+	}
 }
 
 sfKeyCode sfHandleTextInput(uint32_t u32_char,
@@ -148,14 +175,25 @@ static void render()
 
 	sfTexture_updateFromPixels(g_texture, g_vga, 320, 200, 0, 0);
 
-	sfSprite *sprite = sfSprite_create();
+	/* Cache display sprite to avoid allocation every frame */
+	if (!g_display_sprite)
+	{
+		g_display_sprite = sfSprite_create();
+	}
 	sfVector2f scale = { g_scale_x, g_scale_y };
+
+	/* Only update sprite scale if it changed */
+	if (g_last_scale_x != g_scale_x || g_last_scale_y != g_scale_y)
+	{
+		sfSprite_setScale(g_display_sprite, scale);
+		g_last_scale_x = g_scale_x;
+		g_last_scale_y = g_scale_y;
+	}
 
 	sfRenderWindow_clear(g_window, sfBlack);
 
-	sfSprite_setTexture(sprite, g_texture, 1);
-	sfSprite_setScale(sprite, scale);
-	sfRenderWindow_drawSprite(g_window, sprite, NULL);
+	sfSprite_setTexture(g_display_sprite, g_texture, 1);
+	sfRenderWindow_drawSprite(g_window, g_display_sprite, NULL);
 
 	if (g_window_animation_renderer_hook)
 	{
@@ -163,8 +201,6 @@ static void render()
 	}
 
 	sfRenderWindow_display(g_window);
-	
-	sfSprite_destroy(sprite);
 }
 
 static void reset()
@@ -193,13 +229,26 @@ int main(int argc, char *argv[])
 	g_timer = sfClock_create();
 
 	reset();
+	g_4bae_init();
 	resource_manager_init();
-	scene_control_setup_scene(NSID_MAIN_MENU);
-	srand((uint32_t)time(NULL));
 	g_cpu = cpu_new(neuro_cb);
+	if (getenv("AUTO_START")) {
+		strcpy(g_4bae.name + 2, "Case");
+		scene_control_setup_scene(NSID_REAL_WORLD);
+	} else {
+		scene_control_setup_scene(NSID_MAIN_MENU);
+	}
+
+	/* Initialize audio */
+	sdl_audio_init();
+	sdl_audio_set_volume(0.3f);
+	srand((uint32_t)time(NULL));
 
 	while (sfRenderWindow_isOpen(g_window) && !g_exit_game)
 	{
+		unsigned int frame_start = SDL_GetTicks();
+		unsigned int frame_elapsed;
+
 		while (sfRenderWindow_pollEvent(g_window, &event))
 		{
 			if (event.type == sfEvtClosed)
@@ -208,9 +257,16 @@ int main(int argc, char *argv[])
 			}
 			else if (g_scene.handle_input)
 			{
+				if (event.ev.key.code == 77) /* M = toggle mute */
+				{
+					sdl_audio_toggle_mute();
+				}
 				g_scene.handle_input(&event);
 			}
 		}
+
+		/* Reset cursor movement flag each frame */
+		g_mouse_moved = 0;
 
 		neuro_scene_id_t scene = g_scene.update();
 		if (scene != g_scene.id)
@@ -219,11 +275,25 @@ int main(int argc, char *argv[])
 		}
 
 		render();
+
+		/* Frame rate limiting: sleep to maintain TARGET_FPS */
+		frame_elapsed = SDL_GetTicks() - frame_start;
+		{
+			unsigned int frame_budget = 1000 / TARGET_FPS;
+			if (frame_elapsed < frame_budget)
+			{
+				SDL_Delay(frame_budget - frame_elapsed);
+			}
+		}
 	}
 
 	g_scene.deinit();
 	resource_manager_deinit();
 	cpu_destroy(g_cpu);
+	sdl_audio_shutdown();
+
+	/* Free cached rendering objects */
+	if (g_display_sprite) sfSprite_destroy(g_display_sprite);
 
 	sfClock_destroy(g_timer);
 	sfRenderWindow_destroy(g_window);
