@@ -169,6 +169,10 @@ static void neuro_vm(real_world_state_t *state)
 	  continue;
 	 }
 
+	 if (g_3f85.vm_state[n].mark == 0xFF) {
+	  continue;
+	 }
+
 	 uint8_t *opcode_addr = translate_x16_to_x64(DSEG, vm_get_next_op(n));
 	 uint8_t opcode = *opcode_addr;
 
@@ -368,6 +372,10 @@ static void reset_vm()
 	{
 	 uint16_t n = a8e0_get(i);
 	 if (n == 0xffff) {
+	  continue;
+	 }
+
+	 if (g_3f85.vm_state[n].mark == 0xFF) {
 	  continue;
 	 }
 
@@ -592,6 +600,23 @@ int setup_ui_buttons()
 
 /***************************************/
 
+
+/* Room-to-track mapping */
+static uint8_t get_room_track(uint16_t room)
+{
+    switch (room) {
+        case 1:  return 2;
+        case 2: case 5: case 13: case 14: case 15: case 16: case 17: case 18:
+            return 3;
+        case 22: return 6;
+        case 26: case 31: case 37: case 38: case 39: case 45: case 49: case 52:
+            return 4;
+        case 54: case 55:
+            return 5;
+        default:
+            return 0;
+    }
+}
 void build_date_string(char *dst, uint8_t date_day)
 {
 	uint16_t day = 16;
@@ -639,6 +664,9 @@ static void ui_panel_update()
 	  {
 	   g_4bae.time_h = 0;
 	   g_4bae.date_day++;
+
+		  /* Midnight jingle */
+		  sdl_audio_play_track(7);
 	   g_4bae.x4c10 ^= 1;
 	   g_4bae.x4c38 = le16(0);
 	   g_4bae.x4c5c = 0xFF;
@@ -815,6 +843,12 @@ static void init()
 	}
 
 	sub_105F6(NULL, SUB_105F6_OP_INIT_LEVEL);
+
+	/* Play room music */
+	{ uint8_t rt = get_room_track(g_level_n);
+	  if (rt) sdl_audio_play_track(rt);
+	  else sdl_audio_stop();
+	}
 	setup_ui_buttons();
 
 	g_exit_point = -1;

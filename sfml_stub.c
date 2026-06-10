@@ -11,6 +11,12 @@ static sfRenderWindow *g_sfwindow = NULL;
 static Uint8 g_mouse_buttons[3] = {0, 0, 0};
 static Uint8 g_keys[128] = {0};  /* Track keyboard state */
 
+/* Queued text event: when SDL_KEYDOWN has unicode, we queue sfEvtTextEntered
+ * to be returned on the next pollEvent call (SFML 1.x fires both
+ * sfEvtKeyPressed and sfEvtTextEntered for printable keys). */
+static int g_text_event_pending = 0;
+static sfTextEvent g_text_event_buf;
+
 /* ---- Clock ---- */
 
 
@@ -42,10 +48,8 @@ sfVector2i sfMouse_getPositionRenderWindow(void *window)
     sfVector2i pos;
     Uint8 state = SDL_GetMouseState(&pos.x, &pos.y);
     (void)state;
-    if (g_sfwindow) {
-        pos.x /= 2;
-        pos.y /= 2;
-    }
+    (void)window;
+    /* Return raw window coordinates; caller divides by scale factors. */
     return pos;
 }
 
@@ -143,17 +147,20 @@ sfRenderWindow *sfRenderWindow_create(sfVideoMode mode, const char *title,
 {
     sfRenderWindow *win = malloc(sizeof(sfRenderWindow));
     memset(win, 0, sizeof(sfRenderWindow));
-    (void)mode; (void)style; (void)settings;
+    (void)style; (void)settings;
 
-    win->surface = SDL_SetVideoMode(640, 480, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
+    win->surface = SDL_SetVideoMode(mode.width, mode.height, mode.bitsPerPixel,
+                                    SDL_HWSURFACE | SDL_DOUBLEBUF);
     if (!win->surface)
-        win->surface = SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE);
+        win->surface = SDL_SetVideoMode(mode.width, mode.height,
+                                        mode.bitsPerPixel, SDL_SWSURFACE);
     if (!win->surface) { free(win); return NULL; }
 
     win->vga_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 200, 32, 0, 0, 0, 0);
     win->open = 1;
     g_sfwindow = win;
     SDL_WM_SetCaption(title, NULL);
+    SDL_EnableUNICODE(1);
     return win;
 }
 
@@ -171,6 +178,17 @@ void sfRenderWindow_close(sfRenderWindow *w) { if (w) w->open = 0; }
 
 int sfRenderWindow_pollEvent(sfRenderWindow *window, sfEvent *event)
 {
+    /* Return pending text event first (queued from previous SDL_KEYDOWN).
+     * SFML 1.x fires both sfEvtKeyPressed and sfEvtTextEntered for each
+     * printable keypress; we emulate this by deferring the text event. */
+    if (g_text_event_pending) {
+        g_text_event_pending = 0;
+        event->type = sfEvtTextEntered;
+        event->ev.text.code = 0;
+        event->ev.text.unicode = g_text_event_buf.unicode;
+        return 1;
+    }
+
     SDL_Event sdl;
     while (SDL_PollEvent(&sdl)) {
         switch (sdl.type) {
@@ -180,6 +198,17 @@ int sfRenderWindow_pollEvent(sfRenderWindow *window, sfEvent *event)
             case SDL_KEYDOWN: {
                 sfKeyCode k = sdlToSfKey(sdl.key.keysym.sym);
                 if (k >= 0 && k < 128) g_keys[k] = 1;
+                /* Queue sfEvtTextEntered if unicode char is printable. */
+                if (sdl.key.keysym.unicode != 0 &&
+                    ((sdl.key.keysym.unicode >= 0x20 && sdl.key.keysym.unicode <= 0x7e) ||
+                     sdl.key.keysym.unicode == 0x08 ||   /* backspace */
+                     sdl.key.keysym.unicode == 0x0d ||   /* enter */
+                     sdl.key.keysym.unicode == 0x1b))    /* escape */
+                {
+                    g_text_event_buf.code = k;
+                    g_text_event_buf.unicode = sdl.key.keysym.unicode;
+                    g_text_event_pending = 1;
+                }
                 event->type = sfEvtKeyPressed;
                 event->ev.key.code = k;
                 event->ev.key.alt = (sdl.key.keysym.mod & KMOD_ALT) ? 1 : 0;
@@ -202,8 +231,8 @@ int sfRenderWindow_pollEvent(sfRenderWindow *window, sfEvent *event)
             case SDL_MOUSEBUTTONDOWN:
                 g_mouse_buttons[sdl.button.button - 1] = 1;
                 event->type = sfEvtMouseButtonPressed;
-                event->ev.mouseButton.x = sdl.button.x / 2;
-                event->ev.mouseButton.y = sdl.button.y / 2;
+                event->ev.mouseButton.x = sdl.button.x;
+                event->ev.mouseButton.y = sdl.button.y;
                 event->ev.mouseButton.button = (sfUint8)(sdl.button.button - 1);
                 event->ev.mouseButton.alt = 0;
                 event->ev.mouseButton.control = 0;
@@ -212,8 +241,8 @@ int sfRenderWindow_pollEvent(sfRenderWindow *window, sfEvent *event)
             case SDL_MOUSEBUTTONUP:
                 g_mouse_buttons[sdl.button.button - 1] = 0;
                 event->type = sfEvtMouseButtonReleased;
-                event->ev.mouseButton.x = sdl.button.x / 2;
-                event->ev.mouseButton.y = sdl.button.y / 2;
+                event->ev.mouseButton.x = sdl.button.x;
+                event->ev.mouseButton.y = sdl.button.y;
                 event->ev.mouseButton.button = (sfUint8)(sdl.button.button - 1);
                 event->ev.mouseButton.alt = 0;
                 event->ev.mouseButton.control = 0;
@@ -221,8 +250,8 @@ int sfRenderWindow_pollEvent(sfRenderWindow *window, sfEvent *event)
                 return 1;
             case SDL_MOUSEMOTION:
                 event->type = sfEvtMouseMoved;
-                event->ev.mouseMove.x = sdl.motion.x / 2;
-                event->ev.mouseMove.y = sdl.motion.y / 2;
+                event->ev.mouseMove.x = sdl.motion.x;
+                event->ev.mouseMove.y = sdl.motion.y;
                 event->ev.mouseMove.alt = 0;
                 event->ev.mouseMove.control = 0;
                 event->ev.mouseMove.shift = 0;
