@@ -964,6 +964,16 @@ static void handle_normal_input(sfEvent *event)
 static void handle_input(sfEvent *event)
 {
 	switch (g_state) {
+	case RWS_TEXT_OUTPUT:
+		if (event->type == sfEvtKeyPressed)
+		{
+			if (event->ev.key.code == sfKeySpace || event->ev.key.code == sfKeyReturn)
+			{
+				window_animation_skip_line();
+			}
+		}
+	break;
+
 	case RWS_NORMAL:
 	 handle_normal_input(event);
 	 break;

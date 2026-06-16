@@ -61,6 +61,7 @@ extern fn_window_animation_renderer_hook g_window_animation_renderer_hook;
 
 void window_animation_setup(window_animation_type_t type, void *data);
 window_animation_event_t window_animation_update();
+int window_animation_skip_line(void);
 
 #endif
 #include "../sfml_stub.h"

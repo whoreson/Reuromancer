@@ -23,6 +23,11 @@ typedef struct _text_scrolling_data_t {
 	uint16_t max_lines;
 	uint16_t l, w, t, b;
 	uint8_t *pixels;
+	/* runtime state for skip_line support */
+	int lines_on_screen;
+	int lines_scrolled;
+	int next_line;
+	int elapsed;
 } _text_scrolling_data_t;
 
 typedef struct _screen_fading_data_t {
@@ -105,36 +110,32 @@ static window_animation_event_t update_page_turning(_page_turning_data_t *_data)
 
 static window_animation_event_t update_text_scrolling(_text_scrolling_data_t *_data)
 {
-	static int lines_on_screen = 0, lines_scrolled = 0;
-	static int next_line = 1;
-	static int elapsed = 0;
-
 	text_scrolling_data_t *data = &_data->user_data;
 	int passed = sfTime_asMilliseconds(sfClock_getElapsedTime(g_timer));
 
-	if (passed - elapsed <= (int)data->frame_cap)
+	if (passed - _data->elapsed <= (int)data->frame_cap)
 	{
 		return WA_EVENT_NO_EVENT;
 	}
-	elapsed = passed;
+	_data->elapsed = passed;
 
-	if (next_line)
+	if (_data->next_line)
 	{
 		char *line = _data->line;
 		int has_more = extract_line();
 
 		neuro_window_draw_string(has_more ? line : " ", 0);
-		next_line = 0;
+		_data->next_line = 0;
 
 		if (!has_more)
 		{
-			next_line = 1;
-			lines_on_screen = 0;
+			_data->next_line = 1;
+			_data->lines_on_screen = 0;
 			return WA_EVENT_COMPLETED;
 		}
-		else if (++lines_on_screen == _data->max_lines)
+	else if (++_data->lines_on_screen == _data->max_lines)
 		{
-			lines_on_screen = 0;
+			_data->lines_on_screen = 0;
 			return WA_EVENT_WAIT_FOR_INPUT;
 		}
 	}
@@ -147,14 +148,76 @@ static window_animation_event_t update_text_scrolling(_text_scrolling_data_t *_d
 			memmove(&pix[160 * j + _data->l], &pix[160 * i + _data->l], _data->w);
 		}
 
-		if (++lines_scrolled == 8)
+		if (++_data->lines_scrolled == 8)
 		{
-			lines_scrolled = 0;
-			next_line = 1;
-		}
+			_data->lines_scrolled = 0;
+			_data->next_line = 1;
+		}	
 	}
 
 	return WA_EVENT_NO_EVENT;
+}
+
+/* Advances the text scroller to the next line immediately,
+ * skipping the remaining pixel-scroll steps. Returns 1 if
+ * there is more text to scroll, 0 otherwise. */
+int window_animation_skip_line(void)
+{
+	_text_scrolling_data_t *_data;
+	uint8_t *pix;
+	int remaining;
+
+	if (g_animation.type != WA_TYPE_TEXT_SCROLLING)
+		return 0;
+
+	_data = &g_animation.data.scrolling;
+
+	/* If we're in the "draw next line" phase already, nothing to skip */
+	if (_data->next_line)
+		return 1;
+
+	/* Force-complete the pixel scroll phase by doing the remaining
+	 * memmove shifts so the display doesn't look wrong. */
+	pix = _data->pixels + sizeof(imh_hdr_t);
+	remaining = 8 - _data->lines_scrolled;
+	while (remaining > 0)
+	{
+		for (int i = _data->t + 1, j = _data->t; i < _data->b; i++, j++)
+		{
+			memmove(&pix[160 * j + _data->l], &pix[160 * i + _data->l], _data->w);
+		}
+		remaining--;
+	}
+
+	/* Reset scroll state and advance to next line */
+	_data->lines_scrolled = 0;
+	_data->next_line = 1;
+	_data->elapsed = 0;
+
+	/* Immediately draw the next line (same logic as update_text_scrolling) */
+	{
+		char *line = _data->line;
+		int has_more = extract_line();
+
+		neuro_window_draw_string(has_more ? line : " ", 0);
+		_data->next_line = 0;
+
+		if (!has_more)
+		{
+			_data->next_line = 1;
+			_data->lines_on_screen = 0;
+			g_animation.type = WA_TYPE_UNKNOWN;
+			g_window_animation_renderer_hook = NULL;
+			return 0;
+		}
+		else if (++_data->lines_on_screen == _data->max_lines)
+		{
+			_data->lines_on_screen = 0;
+			/* Will return WAIT_FOR_INPUT on next update_text_scrolling call */
+		}
+	}
+
+	return 1;
 }
 
 static void screen_fade_renderer_hook(sfRenderWindow *window, sfVector2f *scale)
@@ -335,9 +398,13 @@ void window_animation_setup(window_animation_type_t type, void *data)
 		break;
 
 	case WA_TYPE_TEXT_SCROLLING:
-		memmove(&g_animation.data.scrolling.user_data, data, sizeof(text_scrolling_data_t));
-		prepare_text_scrolling();
-		break;
+	 memmove(&g_animation.data.scrolling.user_data, data, sizeof(text_scrolling_data_t));
+	 g_animation.data.scrolling.lines_on_screen = 0;
+	 g_animation.data.scrolling.lines_scrolled = 0;
+	 g_animation.data.scrolling.next_line = 1;
+	 g_animation.data.scrolling.elapsed = 0;
+	 prepare_text_scrolling();
+	 break;
 
 	case WA_TYPE_PAGE_TURNING:
 		memmove(&g_animation.data.turning.user_data, data, sizeof(page_turning_data_t));

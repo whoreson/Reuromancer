@@ -992,6 +992,18 @@ void handle_pax_input(sfEvent *event)
 		g_state = handle_pax_wait_for_input(g_state, event);
 		break;
 
+	case PS_USER_INFO:
+	case PS_NEWS:
+	case PS_BOARD_MSG:
+		/* Allow Space/Enter to skip to next line during text scrolling */
+		if (event->type == sfEvtKeyPressed &&
+			(event->ev.key.code == sfKeySpace ||
+			event->ev.key.code == sfKeyReturn))
+		{
+			window_animation_skip_line();
+		}
+		break;
+
 	default:
 		break;
 	}
